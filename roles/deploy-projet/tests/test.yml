@@ -3,4 +3,4 @@
 - hosts: localhost
   remote_user: root
   roles:
-    - list_vm-esx01
+    - deploy-projet
