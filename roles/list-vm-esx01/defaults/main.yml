@@ -1,3 +1,7 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for list-vm-esx01
+esxi_hostname: "192.168.0.10"   # hôte ESXi ou vCenter
+esxi_username: "root"           # à stocker idéalement dans Vault / secrets Semaphore
+esxi_password: "Alexandre.15"   # idem
+esxi_validate_certs: false
