@@ -83,16 +83,6 @@
          | selectattr('guest_name', 'in', groups['all'])
          | list }}
 
-
-- name: Filtrer les VMs à démarrer depuis l'inventaire
-  ansible.builtin.set_fact:
-    target_vms: >-
-      {{ esx1_vms.virtual_machines
-         | selectattr('guest_name', 'defined')
-         | selectattr('guest_name', 'in', groups['all'])
-         | map(attribute='guest_name')
-         | list }}
-
 - name: Afficher les VMs à démarrer
   ansible.builtin.debug:
     var: target_vms
