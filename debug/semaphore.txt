@@ -162,22 +162,61 @@ An optional section for the role authors to include contact information, or a we
   ansible.builtin.debug:
     var: target_vms
 
-- name: Démarrer les VMs sur l'hôte ESX approprié
+- name: Rien à faire si la liste est vide
+  ansible.builtin.debug:
+    msg: "Aucune VM de l'inventaire à démarrer."
+  when: (target_vms | length) == 0
+
+# Séparer les VMs ciblées par hôte ESXi (on cherche esx01 / esx02 dans le FQDN)
+- name: Calculer les listes par hôte ESXi
+  ansible.builtin.set_fact:
+    targets_esx1: "{{ target_vms | selectattr('esxi_hostname', 'search', '(?i)\\besx01\\b') | list }}"
+    targets_esx2: "{{ target_vms | selectattr('esxi_hostname', 'search', '(?i)\\besx02\\b') | list }}"
+
+- name: Debug tailles des listes
+  ansible.builtin.debug:
+    msg: |
+      ESX1 -> {{ targets_esx1 | length }} VMs
+      ESX2 -> {{ targets_esx2 | length }} VMs
+
+# Démarrage côté ESX01 (par UUID)
+- name: Démarrer les VMs sur ESX01
   community.vmware.vmware_guest_powerstate:
-    hostname: >-
-      {{ item.esxi_hostname | regex_replace('\.family\.local$', '') | lower == 'esx01'
-         | ternary(esx1_hostname, esx2_hostname) }}
-    username: >-
-      {{ item.esxi_hostname | regex_replace('\.family\.local$', '') | lower == 'esx01'
-         | ternary(esx1_username, esx2_username) }}
-    password: >-
-      {{ item.esxi_hostname | regex_replace('\.family\.local$', '') | lower == 'esx01'
-         | ternary(esx1_password, esx2_password) }}
-    validate_certs: false
-    name: "{{ item.guest_name }}"
+    hostname: "{{ esx1_hostname }}"
+    username: "{{ esx1_username }}"
+    password: "{{ esx1_password }}"
+    validate_certs: "{{ esx1_validate_certs | default(false) }}"
+    uuid: "{{ item.uuid }}"
     state: powered-on
-  loop: "{{ target_vms }}"
-  register: result_power_on
+  loop: "{{ targets_esx1 }}"
+  when: targets_esx1 | length > 0
+  register: power_on_esx1
+
+# Démarrage côté ESX02 (par UUID)
+- name: Démarrer les VMs sur ESX02
+  community.vmware.vmware_guest_powerstate:
+    hostname: "{{ esx2_hostname }}"
+    username: "{{ esx2_username }}"
+    password: "{{ esx2_password }}"
+    validate_certs: "{{ esx2_validate_certs | default(false) }}"
+    uuid: "{{ item.uuid }}"
+    state: powered-on
+  loop: "{{ targets_esx2 }}"
+  when: targets_esx2 | length > 0
+  register: power_on_esx2
+
+# Résumés lisibles
+- name: Résumé démarrage ESX01
+  ansible.builtin.debug:
+    msg:
+      powered_on: "{{ (power_on_esx1.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
+      skipped:    "{{ (power_on_esx1.results | default([])) | rejectattr('changed') | map(attribute='item.guest_name') | list }}"
+
+- name: Résumé démarrage ESX02
+  ansible.builtin.debug:
+    msg:
+      powered_on: "{{ (power_on_esx2.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
+      skipped:    "{{ (power_on_esx2.results | default([])) | rejectattr('changed') | map(attribute='item.guest_name') | list }}"
 
 
 ---- /srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx/tasks/main.yml.old ----
