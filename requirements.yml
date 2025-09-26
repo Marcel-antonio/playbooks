@@ -4,4 +4,4 @@ collections:
     version: 5.9.0
 
   - name: vmware.vmware_rest
-    version: 2.3.0
+    version: 2.2.0
