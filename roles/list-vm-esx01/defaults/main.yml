@@ -3,7 +3,7 @@
 # defaults file for list-vm-esx01
 # defaults/main.yml
 # variables avec la plus faible priorité
-# Variable définies dans semaphore Variable Groups - Secret
+
 
 esxi_hostname: "CHANGEMOI"
 esxi_username: "CHANGEMOI"
