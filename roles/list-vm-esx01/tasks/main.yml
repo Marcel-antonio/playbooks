@@ -5,7 +5,6 @@
     username: "{{ esxi_username }}"
     password: "{{ esxi_password }}"
     validate_certs: "{{ esxi_validate_certs | default(false) }}"
-  delegate_to: localhost
   register: vm_info
 
 - name: Afficher les VMs (nom, power_state, guest_fullname, ip)

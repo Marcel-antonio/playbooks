@@ -102,7 +102,6 @@ An optional section for the role authors to include contact information, or a we
     username: "{{ esxi_username }}"
     password: "{{ esxi_password }}"
     validate_certs: "{{ esxi_validate_certs | default(false) }}"
-  delegate_to: localhost
   register: vm_info
 
 - name: Afficher les VMs (nom, power_state, guest_fullname, ip)
@@ -131,7 +130,7 @@ localhost
 ---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/vars/main.yml ----
 #SPDX-License-Identifier: MIT-0
 ---
-ansible_python_interpreter: /opt/semaphore/apps/ansible/11.1.0/venv/bin/python3
+
 
 # vars file for list-vm-esx01
 vcenter_hostname: "192.168.10.5"
@@ -179,6 +178,5 @@ all:
   hosts:
     localhost:
       ansible_connection: local
-      ansible_python_interpreter: /usr/bin/python3
-
+      ansible_python_interpreter: /opt/semaphore/apps/ansible/11.1.0/venv/bin/python3
 
