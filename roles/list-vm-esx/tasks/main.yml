@@ -35,10 +35,10 @@
 
 - name: Afficher les VMs (shortname | ip)
   ansible.builtin.debug:
-    msg: "{{ (item.guest_name | default('n/a') | regex_replace('\..*','')) }} | {{ item.ip_address | default('n/a', true) }}"
+    msg: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
   loop: "{{ vm_info.virtual_machines | default([]) }}"
   loop_control:
-    label: "{{ (item.guest_name | default('n/a') | regex_replace('\..*','')) }} | {{ item.ip_address | default('n/a', true) }}"
+    label: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
 
 - name: ESX02 Récupérer la liste des VMs (connexion API ESXi/vCenter)
   community.vmware.vmware_vm_info:
