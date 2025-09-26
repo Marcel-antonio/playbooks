@@ -1,9 +1,9 @@
 # tasks file for list-vm-esx
 - debug:
-    msg: "ESX01: User={{ esx1_username }} Pass={{ esx1_password | regex_replace('.','*') }}"
-    msg: "ESX02: User={{ esx2_username }} Pass={{ esx2_password | regex_replace('.','*') }}"
+    msg: "ESX01 User={{ esx1_username }} Pass={{ esx1_password | regex_replace('.','*') }}"
+    msg: "ESX02 User={{ esx2_username }} Pass={{ esx2_password | regex_replace('.','*') }}"
 
-- name: ESX01: Vérifier que les variables sensibles sont définies
+- name: ESX01 Vérifier que les variables sensibles sont définies
   ansible.builtin.assert:
     that:
       - esx1_hostname != 'CHANGEMOI'
@@ -11,7 +11,7 @@
       - esx1_password != 'CHANGEMOI'
     fail_msg: "esx1_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
 
-- name: ESX02: Vérifier que les variables sensibles sont définies
+- name: ESX02 Vérifier que les variables sensibles sont définies
   ansible.builtin.assert:
     that:
       - esx2_hostname != 'CHANGEMOI'
@@ -19,7 +19,7 @@
       - esx2_password != 'CHANGEMOI'
     fail_msg: "esx2_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
 
-- name: ESX01: Récupérer la liste des VMs (connexion API ESXi/vCenter)
+- name: ESX01 Récupérer la liste des VMs (connexion API ESXi/vCenter)
   community.vmware.vmware_vm_info:
     hostname: "{{ esx1_hostname }}"
     username: "{{ esx1_username }}"
@@ -28,13 +28,13 @@
   no_log: true
   register: vm_info
 
-- name: ESX01: Afficher les VMs (nom, power_state, guest_fullname, ip)
+- name: ESX01 Afficher les VMs (nom, power_state, guest_fullname, ip)
   ansible.builtin.debug:
     msg: >-
       {{ item.guest_name }} | {{ item.power_state }} | {{ item.guest_fullname | default('n/a') }} | {{ item.ip_address | default('n/a') }}
   loop: "{{ vm_info.virtual_machines | default([]) }}"
 
-- name: ESX02: Récupérer la liste des VMs (connexion API ESXi/vCenter)
+- name: ESX02 Récupérer la liste des VMs (connexion API ESXi/vCenter)
   community.vmware.vmware_vm_info:
     hostname: "{{ esx2_hostname }}"
     username: "{{ esx2_username }}"
@@ -43,7 +43,7 @@
   no_log: true
   register: vm_info
 
-- name: ESX02: Afficher les VMs (nom, power_state, guest_fullname, ip)
+- name: ESX02 Afficher les VMs (nom, power_state, guest_fullname, ip)
   ansible.builtin.debug:
     msg: >-
       {{ item.guest_name }} | {{ item.power_state }} | {{ item.guest_fullname | default('n/a') }} | {{ item.ip_address | default('n/a') }}
