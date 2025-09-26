@@ -54,33 +54,24 @@
   ansible.builtin.debug:
     var: target_vms
 
-- name: Rien à faire si la liste est vide
-  ansible.builtin.debug:
-    msg: "Aucune VM de l'inventaire à arrêter."
-  when: (target_vms | length) == 0
-
-# Séparer par hôte + ne garder que celles allumées
-- name: Calculer les listes par hôte ESXi (on garde uniquement poweredOn)
+# Garder uniquement celles qui sont allumées
+- name: Filtrer les VMs allumées par hôte
   ansible.builtin.set_fact:
-    targets_esx1_on: >-
-      {{ target_vms
-         | selectattr('esxi_hostname', 'search', '(?i)\\besx01\\b')
-         | selectattr('power_state', 'equalto', 'poweredOn')
-         | list }}
-    targets_esx2_on: >-
-      {{ target_vms
-         | selectattr('esxi_hostname', 'search', '(?i)\\besx02\\b')
-         | selectattr('power_state', 'equalto', 'poweredOn')
-         | list }}
+    targets_esx1_on: "{{ target_vms
+                         | selectattr('esxi_hostname', 'search', '(?i)\\besx01\\b')
+                         | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
+    targets_esx2_on: "{{ target_vms
+                         | selectattr('esxi_hostname', 'search', '(?i)\\besx02\\b')
+                         | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
 
-- name: Debug tailles des listes
+- name: Debug tailles des listes allumées
   ansible.builtin.debug:
     msg: |
-      ESX1 (à arrêter) -> {{ targets_esx1_on | length }} VMs
-      ESX2 (à arrêter) -> {{ targets_esx2_on | length }} VMs
+      ESX1 ON -> {{ targets_esx1_on | length }} VMs
+      ESX2 ON -> {{ targets_esx2_on | length }} VMs
 
-# Tentative d'arrêt propre via VMware Tools
-- name: Shutdown-guest sur ESX01 (gracieux)
+# 1) Arrêt invité (gracieux) ESX01
+- name: ESX01 - shutdown-guest
   community.vmware.vmware_guest_powerstate:
     hostname: "{{ esx1_hostname }}"
     username: "{{ esx1_username }}"
@@ -92,8 +83,10 @@
   loop: "{{ targets_esx1_on }}"
   when: targets_esx1_on | length > 0
   register: shutdown_esx1
+  failed_when: false
 
-- name: Shutdown-guest sur ESX02 (gracieux)
+# 1) Arrêt invité (gracieux) ESX02
+- name: ESX02 - shutdown-guest
   community.vmware.vmware_guest_powerstate:
     hostname: "{{ esx2_hostname }}"
     username: "{{ esx2_username }}"
@@ -105,9 +98,10 @@
   loop: "{{ targets_esx2_on }}"
   when: targets_esx2_on | length > 0
   register: shutdown_esx2
+  failed_when: false
 
-# Forcer l'arrêt si toujours allumée (au cas où VMware Tools absent / timeout)
-- name: Power-off forcé ESX01 (fallback)
+# 2) Forçage si encore allumées (sécurité : on force sur tout le lot ciblé)
+- name: ESX01 - power-off forcé si nécessaire
   community.vmware.vmware_guest_powerstate:
     hostname: "{{ esx1_hostname }}"
     username: "{{ esx1_username }}"
@@ -116,12 +110,12 @@
     uuid: "{{ item.uuid }}"
     state: powered-off
     force: true
-    state_change_timeout: 60
   loop: "{{ targets_esx1_on }}"
   when: targets_esx1_on | length > 0
-  register: poweroff_esx1
+  register: forced_esx1
+  failed_when: false
 
-- name: Power-off forcé ESX02 (fallback)
+- name: ESX02 - power-off forcé si nécessaire
   community.vmware.vmware_guest_powerstate:
     hostname: "{{ esx2_hostname }}"
     username: "{{ esx2_username }}"
@@ -130,22 +124,20 @@
     uuid: "{{ item.uuid }}"
     state: powered-off
     force: true
-    state_change_timeout: 60
   loop: "{{ targets_esx2_on }}"
   when: targets_esx2_on | length > 0
-  register: poweroff_esx2
+  register: forced_esx2
+  failed_when: false
 
-# Résumés lisibles
-- name: Résumé arrêt ESX01
+# 3) Résumé
+- name: Résumé arrêts ESX01
   ansible.builtin.debug:
     msg:
-      attempted: "{{ (targets_esx1_on | map(attribute='guest_name') | list) | default([]) }}"
-      shutdown_guest_changed: "{{ (shutdown_esx1.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
-      poweroff_changed: "{{ (poweroff_esx1.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
+      shutdown_guest: "{{ (shutdown_esx1.results | default([])) | map(attribute='item.guest_name') | list }}"
+      forced_off:     "{{ (forced_esx1.results   | default([])) | map(attribute='item.guest_name') | list }}"
 
-- name: Résumé arrêt ESX02
+- name: Résumé arrêts ESX02
   ansible.builtin.debug:
     msg:
-      attempted: "{{ (targets_esx2_on | map(attribute='guest_name') | list) | default([]) }}"
-      shutdown_guest_changed: "{{ (shutdown_esx2.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
-      poweroff_changed: "{{ (poweroff_esx2.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
+      shutdown_guest: "{{ (shutdown_esx2.results | default([])) | map(attribute='item.guest_name') | list }}"
+      forced_off:     "{{ (forced_esx2.results   | default([])) | map(attribute='item.guest_name') | list }}"
