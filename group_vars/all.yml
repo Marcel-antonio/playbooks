@@ -1,8 +1,9 @@
 esx1_hostname: 192.168.0.10
 esx2_hostname: 192.168.0.11
-
+vcenter_hostname: 192.168.10.5
 esx1_username: "{{ lookup('env', 'ESX1_USER') }}"
 esx1_password: "{{ lookup('env', 'ESX1_PASS') }}"
-
 esx2_username: "{{ lookup('env', 'ESX2_USER') }}"
 esx2_password: "{{ lookup('env', 'ESX2_PASS') }}"
+vcenter_username: "{{ lookup('env', 'VCENTER_USER') }}"
+vcenter_password: "{{ lookup('env', 'VCENTER_PASS') }}"

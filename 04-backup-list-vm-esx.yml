@@ -1,0 +1,6 @@
+---
+- name: Eteindre une liste de vm sur ESX01 ou ESX02
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: 04-backup-list-vm-esx

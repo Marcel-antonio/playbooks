@@ -3,4 +3,4 @@
   hosts: localhost
   gather_facts: false
   roles:
-    - role: 02-down-list-vm-esx
+    - role: 03-down-list-vm-esx

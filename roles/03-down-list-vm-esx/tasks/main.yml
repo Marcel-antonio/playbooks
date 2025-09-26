@@ -1,4 +1,4 @@
-# tasks file for 02-down-list-vm-esx (STOP)
+# tasks file for 03-down-list-vm-esx (STOP)
 
 - name: Déboguer les identifiants ESX
   ansible.builtin.debug:

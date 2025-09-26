@@ -1,0 +1,41 @@
+all:
+  hosts:
+    localhost:
+      ansible_connection: local
+      ansible_python_interpreter: /opt/semaphore/apps/ansible/11.1.0/venv/bin/python3
+
+  children:
+    vcenter7:
+      children:
+        site-192-168-0-10:
+          hosts:
+            #"01 srv-dc02":
+            #"05 srv-vda01":
+            #"99 srv-lic01":
+            "linux-pxe":
+            #"lx-00 Ansible archive":
+            #"lx-00 Ansible-Semaphore":
+            #"lx-00099":
+            #"lx-01 Tomcat (01-02)":
+            #"lx-02 Apache2":
+            #"lx-03 Keycloak":
+            #"lx-deb01-tools-DNS 73":
+            #"LX-Deb01 Apache 220":
+            #"lx-pxe-tftp (debian)":
+            #"Netscaler1 (11)":
+            #"NSVPX":
+            #"pfsense01":
+            #"srv-back00":
+            #"vcenter7-10":
+
+        site-192-168-0-11:
+          hosts:
+            #"00 srv-dc01":
+            #"02 srv-fic01":
+            #"03 srv-frt01":
+            "04 srv-ctx01":
+            #"lx-0001 manager":
+            #"lx-0001-backup":
+            #"lx-0002 worker":
+            #"lx-0003 worker":
+            #"lx-04z (NFS)":

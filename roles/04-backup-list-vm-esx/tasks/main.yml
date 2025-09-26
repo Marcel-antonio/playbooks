@@ -1,0 +1,56 @@
+# tasks file for 04-backup-list-vm-esx 
+
+- name: Déboguer les identifiants ESX
+  ansible.builtin.debug:
+    msg: |
+      ESX1 = {{ esx1_hostname }} / {{ esx1_username }} / {{ '*' * (esx1_password | length) }}
+      ESX2 = {{ esx2_hostname }} / {{ esx2_username }} / {{ '*' * (esx2_password | length) }}
+
+- name: Vérifier que les variables sensibles sont définies pour ESX1
+  ansible.builtin.assert:
+    that:
+      - esx1_hostname != 'CHANGEMOI'
+      - esx1_username != 'CHANGEMOI'
+      - esx1_password != 'CHANGEMOI'
+    fail_msg: "Variables ESX1 non définies correctement."
+
+- name: Vérifier que les variables sensibles sont définies pour ESX2
+  ansible.builtin.assert:
+    that:
+      - esx2_hostname != 'CHANGEMOI'
+      - esx2_username != 'CHANGEMOI'
+      - esx2_password != 'CHANGEMOI'
+    fail_msg: "Variables ESX2 non définies correctement."
+
+- name: Récupérer les VMs sur ESX1
+  community.vmware.vmware_vm_info:
+    hostname: "{{ esx1_hostname }}"
+    username: "{{ esx1_username }}"
+    password: "{{ esx1_password }}"
+    validate_certs: "{{ esx1_validate_certs | default(false) }}"
+  register: vms_esx1
+
+- name: Récupérer les VMs sur ESX2
+  community.vmware.vmware_vm_info:
+    hostname: "{{ esx2_hostname }}"
+    username: "{{ esx2_username }}"
+    password: "{{ esx2_password }}"
+    validate_certs: "{{ esx2_validate_certs | default(false) }}"
+  register: vms_esx2
+
+- name: Fusionner les deux listes de VMs
+  ansible.builtin.set_fact:
+    all_vms: "{{ (vms_esx1.virtual_machines | default([])) + (vms_esx2.virtual_machines | default([])) }}"
+
+- name: Extraire les VMs à ARRÊTER depuis l'inventaire
+  ansible.builtin.set_fact:
+    target_vms: >-
+      {{ all_vms
+         | selectattr('guest_name', 'defined')
+         | selectattr('guest_name', 'in', groups['all'])
+         | list }}
+
+- name: Afficher les VMs ciblées
+  ansible.builtin.debug:
+    var: target_vms
+
