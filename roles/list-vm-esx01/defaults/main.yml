@@ -5,8 +5,14 @@
 # variables avec la plus faible priorité
 
 
-esxi_hostname: "CHANGEMOI"
-esxi_username: "CHANGEMOI"
-esxi_password: "CHANGEMOI"
-esxi_validate_certs: false
+esx1_hostname: "CHANGEMOI"
+esx1_username: "CHANGEMOI"
+esx1_password: "CHANGEMOI"
+esx1_validate_certs: false
 
+
+
+esx2_hostname: "CHANGEMOI"
+esx2_username: "CHANGEMOI"
+esx2_password: "CHANGEMOI"
+esx2_validate_certs: false

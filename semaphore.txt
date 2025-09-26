@@ -5,7 +5,7 @@
 # defaults file for list-vm-esx01
 # defaults/main.yml
 # variables avec la plus faible priorité
-# Variable définies dans semaphore Variable Groups - Secret
+
 
 esxi_hostname: "CHANGEMOI"
 esxi_username: "CHANGEMOI"
@@ -104,6 +104,13 @@ An optional section for the role authors to include contact information, or a we
 - debug:
     msg: "User={{ esxi_username }} Pass={{ esxi_password | regex_replace('.','*') }}"
 
+- name: Vérifier que les variables sensibles sont définies
+  ansible.builtin.assert:
+    that:
+      - esxi_hostname != 'CHANGEMOI'
+      - esxi_username != 'CHANGEMOI'
+      - esxi_password != 'CHANGEMOI'
+    fail_msg: "esxi_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
 
 - name: Récupérer la liste des VMs (connexion API ESXi/vCenter)
   community.vmware.vmware_vm_info:
@@ -111,7 +118,7 @@ An optional section for the role authors to include contact information, or a we
     username: "{{ esxi_username }}"
     password: "{{ esxi_password }}"
     validate_certs: "{{ esxi_validate_certs | default(false) }}"
-  #no_log: true
+  no_log: true
   register: vm_info
 
 - name: Afficher les VMs (nom, power_state, guest_fullname, ip)
@@ -194,6 +201,7 @@ all:
 ---- /srv/nfs/docker-data/semaphore/playbooks/requirements.yml ----
 collections:
   - name: community.vmware
-    version: ">=3.6.0"
+    version: ">=5.0.0,<6.0.0"
 
+#version: ">=3.6.0"
 

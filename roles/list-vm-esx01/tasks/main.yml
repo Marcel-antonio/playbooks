@@ -1,21 +1,21 @@
 # tasks file for list-vm-esx01
 - debug:
-    msg: "User={{ esxi_username }} Pass={{ esxi_password | regex_replace('.','*') }}"
+    msg: "User={{ esx1_username }} Pass={{ esx1_password | regex_replace('.','*') }}"
 
 - name: Vérifier que les variables sensibles sont définies
   ansible.builtin.assert:
     that:
-      - esxi_hostname != 'CHANGEMOI'
-      - esxi_username != 'CHANGEMOI'
-      - esxi_password != 'CHANGEMOI'
-    fail_msg: "esxi_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
+      - esx1_hostname != 'CHANGEMOI'
+      - esx1_username != 'CHANGEMOI'
+      - esx1_password != 'CHANGEMOI'
+    fail_msg: "esx1_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
 
 - name: Récupérer la liste des VMs (connexion API ESXi/vCenter)
   community.vmware.vmware_vm_info:
-    hostname: "{{ esxi_hostname }}"
-    username: "{{ esxi_username }}"
-    password: "{{ esxi_password }}"
-    validate_certs: "{{ esxi_validate_certs | default(false) }}"
+    hostname: "{{ esx1_hostname }}"
+    username: "{{ esx1_username }}"
+    password: "{{ esx1_password }}"
+    validate_certs: "{{ esx1_validate_certs | default(false) }}"
   no_log: true
   register: vm_info
 
