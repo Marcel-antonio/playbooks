@@ -1,6 +1,11 @@
 # tasks file for list-vm-esx
-- debug:
+
+- name: ESX01 debug
+  ansible.builtin.debug:
     msg: "ESX01 User={{ esx1_username }} Pass={{ esx1_password | regex_replace('.','*') }}"
+
+- name: ESX02 debug
+  ansible.builtin.debug:
     msg: "ESX02 User={{ esx2_username }} Pass={{ esx2_password | regex_replace('.','*') }}"
 
 - name: ESX01 Vérifier que les variables sensibles sont définies
