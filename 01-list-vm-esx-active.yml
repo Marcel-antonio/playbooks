@@ -3,4 +3,4 @@
   hosts: localhost
   gather_facts: false
   roles:
-    - role: list-vm-esx-active
+    - role: 01-list-vm-esx-active
