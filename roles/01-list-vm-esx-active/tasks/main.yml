@@ -1,4 +1,4 @@
-# tasks file for list-vm-esx-active
+# tasks file for 01-list-vm-esx-active
 
 - name: ESX01 debug
   ansible.builtin.debug:
