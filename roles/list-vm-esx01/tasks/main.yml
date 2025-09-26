@@ -1,11 +1,15 @@
 # tasks file for list-vm-esx01
+- debug:
+    msg: "User={{ esxi_username }} Pass={{ esxi_password | regex_replace('.','*') }}"
+
+
 - name: Récupérer la liste des VMs (connexion API ESXi/vCenter)
   community.vmware.vmware_vm_info:
     hostname: "{{ esxi_hostname }}"
     username: "{{ esxi_username }}"
     password: "{{ esxi_password }}"
     validate_certs: "{{ esxi_validate_certs | default(false) }}"
-  no_log: true
+  #no_log: true
   register: vm_info
 
 - name: Afficher les VMs (nom, power_state, guest_fullname, ip)
