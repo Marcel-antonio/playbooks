@@ -1,21 +1,31 @@
 # playbooks
 ##################################################################################################
-list-vm-esx01.yml
+list-vm-esx.yml
 ## Role Variables
 
-- `esxi_hostname`: Adresse IP ou FQDN de l’hôte ESXi ou vCenter (par défaut `CHANGEMOI`)
-- `esxi_username`: Utilisateur ESXi/vCenter (**à redéfinir via Vault ou Semaphore Secrets**)
-- `esxi_password`: Mot de passe ESXi/vCenter (**à redéfinir via Vault ou Semaphore Secrets**)
-- `esxi_validate_certs`: Booléen (false par défaut), permet de désactiver la validation SSL
+- `esx1_hostname`: Adresse IP ou FQDN de l’hôte ESXi ou vCenter (par défaut `CHANGEMOI`)
+- `esx1_username`: Utilisateur ESXi/vCenter (**à redéfinir via Vault ou Semaphore Secrets**)
+- `esx1_password`: Mot de passe ESXi/vCenter (**à redéfinir via Vault ou Semaphore Secrets**)
+- `esx1_validate_certs`: Booléen (false par défaut), permet de désactiver la validation SSL
+
+- `esx2_hostname`: Adresse IP ou FQDN de l’hôte ESXi ou vCenter (par défaut `CHANGEMOI`)
+- `esx2_username`: Utilisateur ESXi/vCenter (**à redéfinir via Vault ou Semaphore Secrets**)
+- `esx2_password`: Mot de passe ESXi/vCenter (**à redéfinir via Vault ou Semaphore Secrets**)
+- `esx2_validate_certs`: Booléen (false par défaut), permet de désactiver la validation SSL
 
 ## Exemple d’utilisation avec Semaphore
 Dans Semaphore, créez un Variable Group `VMware` :
 - Secrets :
-  - `ESXI_USER` = root
-  - `ESXI_PASS` = ********
+  - `ESX1_USER` = root
+  - `ESX1_PASS` = ********
+  - `ESX2_USER` = root
+  - `ESX2_PASS` = ********
+
 - Variables :
-  - `esxi_username = ESXI_USER`
-  - `esxi_password = ESXI_PASS`
+  - `esx1_username = ESX1_USER`
+  - `esx1_password = ESX1_PASS`
+  - `esx2_username = ESX2_USER`
+  - `esx2_password = ESX2_PASS`
 
 
 

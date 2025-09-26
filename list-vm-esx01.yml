@@ -1,6 +1,0 @@
----
-- name: Visualiser les VMs d'ESX01
-  hosts: localhost
-  gather_facts: false
-  roles:
-    - role: list-vm-esx01
