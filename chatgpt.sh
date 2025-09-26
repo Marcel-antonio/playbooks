@@ -16,6 +16,7 @@ DIRS=(
 FILES=(
   "/srv/nfs/docker-data/semaphore/playbooks/list-vm-esx01.yml"
   "/srv/nfs/docker-data/semaphore/playbooks/list-vm-esx01-inventory.yml"
+  "/srv/nfs/docker-data/semaphore/playbooks/requirements.yml"
 )
 
 

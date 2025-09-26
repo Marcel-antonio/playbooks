@@ -3,10 +3,15 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for list-vm-esx01
-esxi_hostname: "192.168.0.10"   # hôte ESXi ou vCenter
-esxi_username: "root"           # à stocker idéalement dans Vault / secrets Semaphore
-esxi_password: "Alexandre.15"   # idem
+# defaults/main.yml
+# variables avec la plus faible priorité
+# Variable définies dans semaphore Variable Groups - Secret
+
+esxi_hostname: "CHANGEMOI"
+esxi_username: "CHANGEMOI"
+esxi_password: "CHANGEMOI"
 esxi_validate_certs: false
+
 
 
 ---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/handlers/main.yml ----
@@ -131,33 +136,32 @@ localhost
 #SPDX-License-Identifier: MIT-0
 ---
 
-
 # vars file for list-vm-esx01
-vcenter_hostname: "192.168.10.5"
-vcenter_datacenter: "Datacenter01"
-vcenter_validate_certs: false
-vcenter_username: "administrator@vsphere.local"
-vcenter_password: "#++#Emilia.21!!!#++#"
+#   vcenter_hostname: "192.168.10.5"
+#   vcenter_datacenter: "Datacenter01"
+#   vcenter_validate_certs: false
+#   vcenter_username: "administrator@vsphere.local"
+#   vcenter_password: "#++#Emilia.21!!!#++#"
 
 # hôte ESXi géré par vCenter
-esxi_hostname: "esx01.sphere-perso.local"
-resource_pool: "Resources"          # pool par défaut du host (optionnel mais conseillé)
+#   esxi_hostname: "esx01.sphere-perso.local"
+#   resource_pool: "Resources"          # pool par défaut du host (optionnel mais conseillé)
 
-vm_name: "vm0001"
-vm_guestid: "debian11_64Guest"      
-vm_disk_gb: 10
-vm_disk_type: "thin"
-vm_disk_datastore: "datastore 10"  
-vm_hw_ram_mb: 2048
-vm_hw_cpu_n: 1
-vm_hw_scsi: "paravirtual"
-vm_net_name: "VM Network"
-vm_net_type: "vmxnet3"
+#   vm_name: "vm0001"
+#   vm_guestid: "debian11_64Guest"      
+#   vm_disk_gb: 10
+#   vm_disk_type: "thin"
+#   vm_disk_datastore: "datastore 10"  
+#   vm_hw_ram_mb: 2048
+#   vm_hw_cpu_n: 1
+#   vm_hw_scsi: "paravirtual"
+#   vm_net_name: "VM Network"
+#   vm_net_type: "vmxnet3"
 
 # chemin absolu inventaire (existe ou créé par vcenter_folder)
-vcenter_destination_folder: "/Datacenter01/vm/vm0001"
+#   vcenter_destination_folder: "/Datacenter01/vm/vm0001"
 
-vm_state: "poweredoff"
+#   vm_state: "poweredoff"
 
 
 
@@ -179,4 +183,12 @@ all:
     localhost:
       ansible_connection: local
       ansible_python_interpreter: /opt/semaphore/apps/ansible/11.1.0/venv/bin/python3
+
+
+=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/requirements.yml ===
+---- /srv/nfs/docker-data/semaphore/playbooks/requirements.yml ----
+collections:
+  - name: community.vmware
+    version: ">=3.6.0"
+
 
