@@ -1,8 +1,8 @@
-=== Dossier : /srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx/ ===
----- /srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx/defaults/main.yml ----
+=== Dossier : /srv/nfs/docker-data/semaphore/playbooks/roles/04-backup-list-vm-esx/ ===
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/04-backup-list-vm-esx/defaults/main.yml ----
 #SPDX-License-Identifier: MIT-0
 ---
-# defaults file for up-list-vm-esx
+# defaults file for 03-down-list-vm-esx
 # defaults/main.yml
 # variables avec la plus faible priorité
 
@@ -19,14 +19,20 @@ esx2_username: "CHANGEMOI"
 esx2_password: "CHANGEMOI"
 esx2_validate_certs: false
 
+vcenter_hostname: "CHANGEMOI"
+vcenter_username: "CHANGEMOI"
+vcenter_password: "CHANGEMOI"
+vcenter_validate_certs: false
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx/handlers/main.yml ----
+
+
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/04-backup-list-vm-esx/handlers/main.yml ----
 #SPDX-License-Identifier: MIT-0
 ---
 # handlers file for list-vm-esx01
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx/meta/main.yml ----
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/04-backup-list-vm-esx/meta/main.yml ----
 #SPDX-License-Identifier: MIT-0
 galaxy_info:
   author: your name
@@ -64,7 +70,7 @@ dependencies: []
   # if you add dependencies to this list.
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx/README.md ----
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/04-backup-list-vm-esx/README.md ----
 Role Name
 =========
 
@@ -105,14 +111,14 @@ Author Information
 An optional section for the role authors to include contact information, or a website (HTML is not allowed).
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx/tasks/main.yml ----
-# tasks file for 02-up-list-vm-esx
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/04-backup-list-vm-esx/tasks/main.yml ----
+# tasks file for 04-backup-list-vm-esx 
 
 - name: Déboguer les identifiants ESX
   ansible.builtin.debug:
     msg: |
-      ESX1 = {{ esx1_hostname }} / {{ esx1_username }} / {{ '*' * esx1_password | length }}
-      ESX2 = {{ esx2_hostname }} / {{ esx2_username }} / {{ '*' * esx2_password | length }}
+      ESX1 = {{ esx1_hostname }} / {{ esx1_username }} / {{ '*' * (esx1_password | length) }}
+      ESX2 = {{ esx2_hostname }} / {{ esx2_username }} / {{ '*' * (esx2_password | length) }}
 
 - name: Vérifier que les variables sensibles sont définies pour ESX1
   ansible.builtin.assert:
@@ -148,9 +154,9 @@ An optional section for the role authors to include contact information, or a we
 
 - name: Fusionner les deux listes de VMs
   ansible.builtin.set_fact:
-    all_vms: "{{ vms_esx1.virtual_machines + vms_esx2.virtual_machines }}"
+    all_vms: "{{ (vms_esx1.virtual_machines | default([])) + (vms_esx2.virtual_machines | default([])) }}"
 
-- name: Extraire les VMs à démarrer depuis l'inventaire
+- name: Extraire les VMs à ARRÊTER depuis l'inventaire
   ansible.builtin.set_fact:
     target_vms: >-
       {{ all_vms
@@ -162,158 +168,43 @@ An optional section for the role authors to include contact information, or a we
   ansible.builtin.debug:
     var: target_vms
 
-- name: Rien à faire si la liste est vide
-  ansible.builtin.debug:
-    msg: "Aucune VM de l'inventaire à démarrer."
-  when: (target_vms | length) == 0
-
-# Séparer les VMs ciblées par hôte ESXi (on cherche esx01 / esx02 dans le FQDN)
-- name: Calculer les listes par hôte ESXi
-  ansible.builtin.set_fact:
-    targets_esx1: "{{ target_vms | selectattr('esxi_hostname', 'search', '(?i)\\besx01\\b') | list }}"
-    targets_esx2: "{{ target_vms | selectattr('esxi_hostname', 'search', '(?i)\\besx02\\b') | list }}"
-
-- name: Debug tailles des listes
-  ansible.builtin.debug:
-    msg: |
-      ESX1 -> {{ targets_esx1 | length }} VMs
-      ESX2 -> {{ targets_esx2 | length }} VMs
-
-# Démarrage côté ESX01 (par UUID)
-- name: Démarrer les VMs sur ESX01
-  community.vmware.vmware_guest_powerstate:
-    hostname: "{{ esx1_hostname }}"
-    username: "{{ esx1_username }}"
-    password: "{{ esx1_password }}"
-    validate_certs: "{{ esx1_validate_certs | default(false) }}"
-    uuid: "{{ item.uuid }}"
-    state: powered-on
-  loop: "{{ targets_esx1 }}"
-  when: targets_esx1 | length > 0
-  register: power_on_esx1
-
-# Démarrage côté ESX02 (par UUID)
-- name: Démarrer les VMs sur ESX02
-  community.vmware.vmware_guest_powerstate:
-    hostname: "{{ esx2_hostname }}"
-    username: "{{ esx2_username }}"
-    password: "{{ esx2_password }}"
-    validate_certs: "{{ esx2_validate_certs | default(false) }}"
-    uuid: "{{ item.uuid }}"
-    state: powered-on
-  loop: "{{ targets_esx2 }}"
-  when: targets_esx2 | length > 0
-  register: power_on_esx2
-
-# Résumés lisibles
-- name: Résumé démarrage ESX01
-  ansible.builtin.debug:
-    msg:
-      powered_on: "{{ (power_on_esx1.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
-      skipped:    "{{ (power_on_esx1.results | default([])) | rejectattr('changed') | map(attribute='item.guest_name') | list }}"
-
-- name: Résumé démarrage ESX02
-  ansible.builtin.debug:
-    msg:
-      powered_on: "{{ (power_on_esx2.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
-      skipped:    "{{ (power_on_esx2.results | default([])) | rejectattr('changed') | map(attribute='item.guest_name') | list }}"
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx/tasks/main.yml.old ----
-# tasks file for 02-up-list-vm-esx1
-
-- name: ESX01 debug
-  ansible.builtin.debug:
-    msg: "ESX01 User={{ esx1_username }} Pass={{ esx1_password | regex_replace('.','*') }}"
-
-- name: ESX02 debug
-  ansible.builtin.debug:
-    msg: "ESX02 User={{ esx2_username }} Pass={{ esx2_password | regex_replace('.','*') }}"
-
-- name: ESX01 Vérifier que les variables sensibles sont définies
-  ansible.builtin.assert:
-    that:
-      - esx1_hostname != 'CHANGEMOI'
-      - esx1_username != 'CHANGEMOI'
-      - esx1_password != 'CHANGEMOI'
-    fail_msg: "esx1_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
-
-- name: ESX02 Vérifier que les variables sensibles sont définies
-  ansible.builtin.assert:
-    that:
-      - esx2_hostname != 'CHANGEMOI'
-      - esx2_username != 'CHANGEMOI'
-      - esx2_password != 'CHANGEMOI'
-    fail_msg: "esx2_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
-
-- name: Récupérer la liste des VMs (ESX01)
-  community.vmware.vmware_vm_info:
-    hostname: "{{ esx1_hostname }}"
-    username: "{{ esx1_username }}"
-    password: "{{ esx1_password }}"
-    validate_certs: "{{ esx1_validate_certs | default(false) }}"
-  register: esx1_vms
-
-- name: Filtrer les VMs à démarrer depuis l'inventaire
-  ansible.builtin.set_fact:
-    target_vms: >-
-      {{ esx1_vms.virtual_machines
-         | selectattr('guest_name', 'defined')
-         | selectattr('guest_name', 'in', groups['all'])
-         | list }}
-
-
-- name: Afficher les VMs à démarrer
-  ansible.builtin.debug:
-    var: target_vms
-
-- name: Démarrer les VMs (ESX01)
-  community.vmware.vmware_guest_powerstate:
-    hostname: "{{ esx1_hostname }}"
-    username: "{{ esx1_username }}"
-    password: "{{ esx1_password }}"
-    validate_certs: "{{ esx1_validate_certs | default(false) }}"
-    name: "{{ item }}"
-    state: powered-on
-  loop: "{{ target_vms }}"
-  register: poweron_result
-
-
----- /srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx/templates/main.yml ----
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/04-backup-list-vm-esx/templates/main.yml ----
  
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx/tests/inventory ----
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/04-backup-list-vm-esx/tests/inventory ----
 #SPDX-License-Identifier: MIT-0
 localhost
 
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx/tests/test.yml ----
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/04-backup-list-vm-esx/tests/test.yml ----
 #SPDX-License-Identifier: MIT-0
 ---
 - hosts: localhost
   remote_user: root
   roles:
-    - up-list-vm-esx
+    - 04-bacckup-list-vm-esx
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx/vars/main.yml ----
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/04-backup-list-vm-esx/vars/main.yml ----
 #SPDX-License-Identifier: MIT-0
 ---
 
 
-=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/02-up-list-vm-esx.yml ===
----- /srv/nfs/docker-data/semaphore/playbooks/02-up-list-vm-esx.yml ----
+=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/04-backup-list-vm-esx.yml ===
+---- /srv/nfs/docker-data/semaphore/playbooks/04-backup-list-vm-esx.yml ----
 ---
-- name: Démarrer une liste de vm sur ESX01 ou ESX02
+- name: Eteindre une liste de vm sur ESX01 ou ESX02
   hosts: localhost
   gather_facts: false
   roles:
-    - role: 02-up-list-vm-esx
+    - role: 04-backup-list-vm-esx
 
-=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/02-up-list-vm-esx-inventory.yml ===
----- /srv/nfs/docker-data/semaphore/playbooks/02-up-list-vm-esx-inventory.yml ----
+=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/04-backup-list-vm-esx-inventory.yml ===
+---- /srv/nfs/docker-data/semaphore/playbooks/04-backup-list-vm-esx-inventory.yml ----
 all:
   hosts:
     localhost:
@@ -390,11 +281,12 @@ deprecation_warnings = false
 ---- /srv/nfs/docker-data/semaphore/playbooks/group_vars/all.yml ----
 esx1_hostname: 192.168.0.10
 esx2_hostname: 192.168.0.11
-
+vcenter_hostname: 192.168.10.5
 esx1_username: "{{ lookup('env', 'ESX1_USER') }}"
 esx1_password: "{{ lookup('env', 'ESX1_PASS') }}"
-
 esx2_username: "{{ lookup('env', 'ESX2_USER') }}"
 esx2_password: "{{ lookup('env', 'ESX2_PASS') }}"
+vcenter_username: "{{ lookup('env', 'VCENTER_USER') }}"
+vcenter_password: "{{ lookup('env', 'VCENTER_PASS') }}"
 
 

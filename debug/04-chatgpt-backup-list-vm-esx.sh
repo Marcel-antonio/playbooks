@@ -9,13 +9,13 @@ rm -f "$OUTFILE"   # Supprime le fichier s'il existe
 
 # === Dossiers à explorer ===
 DIRS=(
-  "/srv/nfs/docker-data/semaphore/playbooks/roles/02-down-list-vm-esx/"
+  "/srv/nfs/docker-data/semaphore/playbooks/roles/04-backup-list-vm-esx/"
 )
 
 # === Fichiers à inclure manuellement ===
 FILES=(
-  "/srv/nfs/docker-data/semaphore/playbooks/02-down-list-vm-esx.yml"
-  "/srv/nfs/docker-data/semaphore/playbooks/02-down-list-vm-esx-inventory.yml"
+  "/srv/nfs/docker-data/semaphore/playbooks/04-backup-list-vm-esx.yml"
+  "/srv/nfs/docker-data/semaphore/playbooks/04-backup-list-vm-esx-inventory.yml"
   "/srv/nfs/docker-data/semaphore/playbooks/requirements.yml"
   "/srv/nfs/docker-data/semaphore/playbooks/ansible.cfg"
   "/srv/nfs/docker-data/semaphore/playbooks/group_vars/all.yml"
