@@ -1,6 +1,6 @@
 #!/bin/bash
 # === Fichier de sortie ===
-OUTFILE="/srv/nfs/docker-data/semaphore/playbooks/semaphore.txt"
+OUTFILE="/srv/nfs/docker-data/semaphore/playbooks/debug/semaphore.txt"
 
 rm -f "$OUTFILE"   # Supprime le fichier s'il existe
 
@@ -9,13 +9,13 @@ rm -f "$OUTFILE"   # Supprime le fichier s'il existe
 
 # === Dossiers à explorer ===
 DIRS=(
-  "/srv/nfs/docker-data/semaphore/playbooks/roles/up-list-vm-esx1/"
+  "/srv/nfs/docker-data/semaphore/playbooks/roles/02-up-list-vm-esx1/"
 )
 
 # === Fichiers à inclure manuellement ===
 FILES=(
-  "/srv/nfs/docker-data/semaphore/playbooks/up-list-vm-esx1.yml"
-  "/srv/nfs/docker-data/semaphore/playbooks/up-list-vm-esx1-inventory.yml"
+  "/srv/nfs/docker-data/semaphore/playbooks/02-up-list-vm-esx1.yml"
+  "/srv/nfs/docker-data/semaphore/playbooks/02-up-list-vm-esx1-inventory.yml"
   "/srv/nfs/docker-data/semaphore/playbooks/requirements.yml"
   "/srv/nfs/docker-data/semaphore/playbooks/ansible.cfg"
   "/srv/nfs/docker-data/semaphore/playbooks/group_vars/all.yml"
