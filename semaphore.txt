@@ -1,0 +1,184 @@
+=== Dossier : /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/ ===
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/defaults/main.yml ----
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for list-vm-esx01
+esxi_hostname: "192.168.0.10"   # hôte ESXi ou vCenter
+esxi_username: "root"           # à stocker idéalement dans Vault / secrets Semaphore
+esxi_password: "Alexandre.15"   # idem
+esxi_validate_certs: false
+
+
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/handlers/main.yml ----
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for list-vm-esx01
+
+
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/meta/main.yml ----
+#SPDX-License-Identifier: MIT-0
+galaxy_info:
+  author: your name
+  description: your role description
+  company: your company (optional)
+
+  # If the issue tracker for your role is not on github, uncomment the
+  # next line and provide a value
+  # issue_tracker_url: http://example.com/issue/tracker
+
+  # Choose a valid license ID from https://spdx.org - some suggested licenses:
+  # - BSD-3-Clause (default)
+  # - MIT
+  # - GPL-2.0-or-later
+  # - GPL-3.0-only
+  # - Apache-2.0
+  # - CC-BY-4.0
+  license: license (GPL-2.0-or-later, MIT, etc)
+
+  min_ansible_version: 2.1
+
+  # If this a Container Enabled role, provide the minimum Ansible Container version.
+  # min_ansible_container_version:
+
+  galaxy_tags: []
+    # List tags for your role here, one per line. A tag is a keyword that describes
+    # and categorizes the role. Users find roles by searching for tags. Be sure to
+    # remove the '[]' above, if you add tags to this list.
+    #
+    # NOTE: A tag is limited to a single word comprised of alphanumeric characters.
+    #       Maximum 20 tags per role.
+
+dependencies: []
+  # List your role dependencies here, one per line. Be sure to remove the '[]' above,
+  # if you add dependencies to this list.
+
+
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/README.md ----
+Role Name
+=========
+
+A brief description of the role goes here.
+
+Requirements
+------------
+
+Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+
+Role Variables
+--------------
+
+A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+
+Dependencies
+------------
+
+A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+
+Example Playbook
+----------------
+
+Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+
+    - hosts: servers
+      roles:
+         - { role: username.rolename, x: 42 }
+
+License
+-------
+
+BSD
+
+Author Information
+------------------
+
+An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+
+
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/tasks/main.yml ----
+# tasks file for list-vm-esx01
+- name: Récupérer la liste des VMs (connexion API ESXi/vCenter)
+  community.vmware.vmware_vm_info:
+    hostname: "{{ esxi_hostname }}"
+    username: "{{ esxi_username }}"
+    password: "{{ esxi_password }}"
+    validate_certs: "{{ esxi_validate_certs | default(false) }}"
+  delegate_to: localhost
+  register: vm_info
+
+- name: Afficher les VMs (nom, power_state, guest_fullname, ip)
+  ansible.builtin.debug:
+    msg: >-
+      {{ item.guest_name }} | {{ item.power_state }} | {{ item.guest_fullname | default('n/a') }} | {{ item.ip_address | default('n/a') }}
+  loop: "{{ vm_info.virtual_machines | default([]) }}"
+
+
+
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/tests/inventory ----
+#SPDX-License-Identifier: MIT-0
+localhost
+
+
+
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/tests/test.yml ----
+#SPDX-License-Identifier: MIT-0
+---
+- hosts: localhost
+  remote_user: root
+  roles:
+    - list-vm-esx01
+
+
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/vars/main.yml ----
+#SPDX-License-Identifier: MIT-0
+---
+ansible_python_interpreter: /opt/semaphore/apps/ansible/11.1.0/venv/bin/python3
+
+# vars file for list-vm-esx01
+vcenter_hostname: "192.168.10.5"
+vcenter_datacenter: "Datacenter01"
+vcenter_validate_certs: false
+vcenter_username: "administrator@vsphere.local"
+vcenter_password: "#++#Emilia.21!!!#++#"
+
+# hôte ESXi géré par vCenter
+esxi_hostname: "esx01.sphere-perso.local"
+resource_pool: "Resources"          # pool par défaut du host (optionnel mais conseillé)
+
+vm_name: "vm0001"
+vm_guestid: "debian11_64Guest"      
+vm_disk_gb: 10
+vm_disk_type: "thin"
+vm_disk_datastore: "datastore 10"  
+vm_hw_ram_mb: 2048
+vm_hw_cpu_n: 1
+vm_hw_scsi: "paravirtual"
+vm_net_name: "VM Network"
+vm_net_type: "vmxnet3"
+
+# chemin absolu inventaire (existe ou créé par vcenter_folder)
+vcenter_destination_folder: "/Datacenter01/vm/vm0001"
+
+vm_state: "poweredoff"
+
+
+
+
+
+=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/list-vm-esx01.yml ===
+---- /srv/nfs/docker-data/semaphore/playbooks/list-vm-esx01.yml ----
+---
+- name: Visualiser les VMs d'ESX01
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: list-vm-esx01
+
+=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/list-vm-esx01-inventory.yml ===
+---- /srv/nfs/docker-data/semaphore/playbooks/list-vm-esx01-inventory.yml ----
+all:
+  hosts:
+    localhost:
+      ansible_connection: local
+      ansible_python_interpreter: /usr/bin/python3
+
+
