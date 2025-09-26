@@ -2,6 +2,13 @@
 - debug:
     msg: "User={{ esxi_username }} Pass={{ esxi_password | regex_replace('.','*') }}"
 
+- name: Vérifier que les variables sensibles sont définies
+  ansible.builtin.assert:
+    that:
+      - esxi_hostname != 'CHANGEMOI'
+      - esxi_username != 'CHANGEMOI'
+      - esxi_password != 'CHANGEMOI'
+    fail_msg: "esxi_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
 
 - name: Récupérer la liste des VMs (connexion API ESXi/vCenter)
   community.vmware.vmware_vm_info:
