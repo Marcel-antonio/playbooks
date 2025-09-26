@@ -54,19 +54,39 @@
   ansible.builtin.debug:
     var: target_vms
 
-- name: Démarrer les VMs sur l'hôte ESX approprié
+# Après "Afficher les VMs ciblées"
+
+- name: Séparer les VMs par hôte ESX
+  ansible.builtin.set_fact:
+    target_vms_esx1: >-
+      {{ target_vms
+         | selectattr('esxi_hostname', 'search', '^esx01(\\.|$)')
+         | list }}
+    target_vms_esx2: >-
+      {{ target_vms
+         | selectattr('esxi_hostname', 'search', '^esx02(\\.|$)')
+         | list }}
+
+- name: Démarrer les VMs sur ESX01
   community.vmware.vmware_guest_powerstate:
-    hostname: >-
-      {{ item.esxi_hostname | regex_replace('\.family\.local$', '') | lower == 'esx01'
-         | ternary(esx1_hostname, esx2_hostname) }}
-    username: >-
-      {{ item.esxi_hostname | regex_replace('\.family\.local$', '') | lower == 'esx01'
-         | ternary(esx1_username, esx2_username) }}
-    password: >-
-      {{ item.esxi_hostname | regex_replace('\.family\.local$', '') | lower == 'esx01'
-         | ternary(esx1_password, esx2_password) }}
-    validate_certs: false
+    hostname: "{{ esx1_hostname }}"
+    username: "{{ esx1_username }}"
+    password: "{{ esx1_password }}"
+    validate_certs: "{{ esx1_validate_certs | default(false) }}"
     name: "{{ item.guest_name }}"
     state: powered-on
-  loop: "{{ target_vms }}"
-  register: result_power_on
+  loop: "{{ target_vms_esx1 }}"
+  when: target_vms_esx1 | length > 0
+  register: result_power_on_esx1
+
+- name: Démarrer les VMs sur ESX02
+  community.vmware.vmware_guest_powerstate:
+    hostname: "{{ esx2_hostname }}"
+    username: "{{ esx2_username }}"
+    password: "{{ esx2_password }}"
+    validate_certs: "{{ esx2_validate_certs | default(false) }}"
+    name: "{{ item.guest_name }}"
+    state: powered-on
+  loop: "{{ target_vms_esx2 }}"
+  when: target_vms_esx2 | length > 0
+  register: result_power_on_esx2
