@@ -46,4 +46,23 @@ Dans Semaphore, créez un Variable Group `VMware` :
 
 
 #################################################################################################
- 
+# Rôle Ansible : up-list-vm-esx1
+
+Ce rôle se connecte à un hôte ESXi (ou vCenter) et démarre les VM spécifiées dans l'inventaire si elles sont arrêtées.
+
+## Variables attendues
+
+Définies dans `group_vars/all.yml` ou en Variable Group dans Semaphore :
+
+- `esx1_hostname`
+- `esx1_username`
+- `esx1_password`
+- `esx1_validate_certs`
+
+## Exécution
+
+```yaml
+- name: Démarrage VMs depuis inventaire
+  hosts: localhost
+  roles:
+    - up-list-vm-esx1

@@ -177,7 +177,7 @@ localhost
 - hosts: localhost
   remote_user: root
   roles:
-    - list-vm-esx01
+    - up-list-vm-esx01
 
 
 ---- /srv/nfs/docker-data/semaphore/playbooks/roles/up-list-vm-esx1/vars/main.yml ----
