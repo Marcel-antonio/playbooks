@@ -33,7 +33,7 @@
   no_log: true
   register: vm_info
 
-- name: Afficher les VMs (shortname | ip)
+- name: ESX01 Afficher les VMs
   ansible.builtin.debug:
     msg: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
   loop: "{{ vm_info.virtual_machines | default([]) }}"
@@ -49,7 +49,7 @@
   no_log: true
   register: vm_info
 
-- name: Afficher les VMs (shortname | ip)
+- name: ESX02 Afficher les VMs
   ansible.builtin.debug:
     msg: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
   loop: "{{ vm_info.virtual_machines | default([]) }}"
