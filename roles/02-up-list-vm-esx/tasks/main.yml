@@ -1,57 +1,74 @@
-# tasks file for 02-up-list-vm-esx (multi-ESX dynamique)
+# tasks file for 02-up-list-vm-esx
 
-- name: Debug utilisateurs ESX01/ESX02
+- name: Déboguer les identifiants ESX
   ansible.builtin.debug:
     msg: |
-      ESX01 User={{ esx1_username }} Pass={{ esx1_password | regex_replace('.','*') }}
-      ESX02 User={{ esx2_username }} Pass={{ esx2_password | regex_replace('.','*') }}
+      ESX1 = {{ esx1_hostname }} / {{ esx1_username }} / {{ '*' * esx1_password | length }}
+      ESX2 = {{ esx2_hostname }} / {{ esx2_username }} / {{ '*' * esx2_password | length }}
 
-- name: Vérifier que les variables sensibles ESX01 sont définies
+- name: Vérifier que les variables sensibles sont définies pour ESX1
   ansible.builtin.assert:
     that:
       - esx1_hostname != 'CHANGEMOI'
       - esx1_username != 'CHANGEMOI'
       - esx1_password != 'CHANGEMOI'
-    fail_msg: "esx1_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
+    fail_msg: "Variables ESX1 non définies correctement."
 
-- name: Vérifier que les variables sensibles ESX02 sont définies
+- name: Vérifier que les variables sensibles sont définies pour ESX2
   ansible.builtin.assert:
     that:
       - esx2_hostname != 'CHANGEMOI'
       - esx2_username != 'CHANGEMOI'
       - esx2_password != 'CHANGEMOI'
-    fail_msg: "esx2_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
+    fail_msg: "Variables ESX2 non définies correctement."
 
-# Création des listes de VMs par site
-- name: Générer la liste des VMs pour ESX01
-  ansible.builtin.set_fact:
-    esx1_vms: "{{ groups['site-192-168-0-10'] | default([]) }}"
+- name: Récupérer les VMs sur ESX1
+  community.vmware.vmware_vm_info:
+    hostname: "{{ esx1_hostname }}"
+    username: "{{ esx1_username }}"
+    password: "{{ esx1_password }}"
+    validate_certs: "{{ esx1_validate_certs | default(false) }}"
+  register: vms_esx1
 
-- name: Générer la liste des VMs pour ESX02
-  ansible.builtin.set_fact:
-    esx2_vms: "{{ groups['site-192-168-0-11'] | default([]) }}"
+- name: Récupérer les VMs sur ESX2
+  community.vmware.vmware_vm_info:
+    hostname: "{{ esx2_hostname }}"
+    username: "{{ esx2_username }}"
+    password: "{{ esx2_password }}"
+    validate_certs: "{{ esx2_validate_certs | default(false) }}"
+  register: vms_esx2
 
 - name: Fusionner les deux listes de VMs
   ansible.builtin.set_fact:
-    target_vms: "{{ esx1_vms + esx2_vms }}"
+    all_vms: "{{ vms_esx1.virtual_machines + vms_esx2.virtual_machines }}"
 
-- name: Afficher les VMs à démarrer
+- name: Extraire les VMs à démarrer depuis l'inventaire
+  ansible.builtin.set_fact:
+    target_vms: >-
+      {{ all_vms
+         | selectattr('guest_name', 'defined')
+         | selectattr('guest_name', 'in', groups['all'])
+         | list }}
+
+- name: Afficher les VMs ciblées
   ansible.builtin.debug:
     var: target_vms
 
-# Démarrage conditionnel selon l’ESXi d’appartenance
-- name: Démarrer les VMs sur le bon ESXi
+- name: Démarrer les VMs sur le bon ESX
   community.vmware.vmware_guest_powerstate:
-    hostname: >-
-      {{ item in esx1_vms | ternary(esx1_hostname, esx2_hostname) }}
-    username: >-
-      {{ item in esx1_vms | ternary(esx1_username, esx2_username) }}
-    password: >-
-      {{ item in esx1_vms | ternary(esx1_password, esx2_password) }}
-    validate_certs: >-
-      {{ item in esx1_vms
-         | ternary(esx1_validate_certs | default(false), esx2_validate_certs | default(false)) }}
-    name: "{{ item }}"
+    hostname: "{{ item.hostname }}"
+    username: "{{ item.username }}"
+    password: "{{ item.password }}"
+    validate_certs: "{{ item.validate_certs }}"
+    name: "{{ item.vm.guest_name }}"
     state: powered-on
-  loop: "{{ target_vms }}"
-  register: poweron_result
+  loop: >-
+    {{
+      target_vms | map('combine', {
+        'hostname': (item in vms_esx1.virtual_machines) | ternary(esx1_hostname, esx2_hostname),
+        'username': (item in vms_esx1.virtual_machines) | ternary(esx1_username, esx2_username),
+        'password': (item in vms_esx1.virtual_machines) | ternary(esx1_password, esx2_password),
+        'validate_certs': (item in vms_esx1.virtual_machines) | ternary(esx1_validate_certs, esx2_validate_certs),
+        'vm': item
+      })
+    }}
