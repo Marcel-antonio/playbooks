@@ -59,51 +59,53 @@
     msg: "Aucune VM de l'inventaire à démarrer."
   when: (target_vms | length) == 0
 
-- name: Séparer les VMs par hôte ESX
+# Séparer les VMs ciblées par hôte ESXi (on cherche esx01 / esx02 dans le FQDN)
+- name: Calculer les listes par hôte ESXi
   ansible.builtin.set_fact:
-    target_vms_esx1: >-
-      {{ target_vms | selectattr('esxi_hostname', 'search', '^esx01(\\.|$)') | list }}
-    target_vms_esx2: >-
-      {{ target_vms | selectattr('esxi_hostname', 'search', '^esx02(\\.|$)') | list }}
+    targets_esx1: "{{ target_vms | selectattr('esxi_hostname', 'search', '(?i)\\besx01\\b') | list }}"
+    targets_esx2: "{{ target_vms | selectattr('esxi_hostname', 'search', '(?i)\\besx02\\b') | list }}"
 
-- name: Démarrer les VMs sur ESX01 (si éteintes)
+- name: Debug tailles des listes
+  ansible.builtin.debug:
+    msg: |
+      ESX1 -> {{ targets_esx1 | length }} VMs
+      ESX2 -> {{ targets_esx2 | length }} VMs
+
+# Démarrage côté ESX01 (par UUID)
+- name: Démarrer les VMs sur ESX01
   community.vmware.vmware_guest_powerstate:
     hostname: "{{ esx1_hostname }}"
     username: "{{ esx1_username }}"
     password: "{{ esx1_password }}"
     validate_certs: "{{ esx1_validate_certs | default(false) }}"
-    name: "{{ item.guest_name }}"
+    uuid: "{{ item.uuid }}"
     state: powered-on
-  loop: "{{ target_vms_esx1 }}"
-  when:
-    - (target_vms_esx1 | length) > 0
-    - item.power_state != 'poweredOn'
-  loop_control:
-    label: "{{ item.guest_name }}"
+  loop: "{{ targets_esx1 }}"
+  when: targets_esx1 | length > 0
   register: power_on_esx1
 
-- name: Démarrer les VMs sur ESX02 (si éteintes)
+# Démarrage côté ESX02 (par UUID)
+- name: Démarrer les VMs sur ESX02
   community.vmware.vmware_guest_powerstate:
     hostname: "{{ esx2_hostname }}"
     username: "{{ esx2_username }}"
     password: "{{ esx2_password }}"
     validate_certs: "{{ esx2_validate_certs | default(false) }}"
-    name: "{{ item.guest_name }}"
+    uuid: "{{ item.uuid }}"
     state: powered-on
-  loop: "{{ target_vms_esx2 }}"
-  when:
-    - (target_vms_esx2 | length) > 0
-    - item.power_state != 'poweredOn'
-  loop_control:
-    label: "{{ item.guest_name }}"
+  loop: "{{ targets_esx2 }}"
+  when: targets_esx2 | length > 0
   register: power_on_esx2
 
+# Résumés lisibles
 - name: Résumé démarrage ESX01
   ansible.builtin.debug:
-    var: power_on_esx1.results
-  when: power_on_esx1 is defined
+    msg:
+      powered_on: "{{ (power_on_esx1.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
+      skipped:    "{{ (power_on_esx1.results | default([])) | rejectattr('changed') | map(attribute='item.guest_name') | list }}"
 
 - name: Résumé démarrage ESX02
   ansible.builtin.debug:
-    var: power_on_esx2.results
-  when: power_on_esx2 is defined
+    msg:
+      powered_on: "{{ (power_on_esx2.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
+      skipped:    "{{ (power_on_esx2.results | default([])) | rejectattr('changed') | map(attribute='item.guest_name') | list }}"
