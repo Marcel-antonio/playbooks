@@ -1,4 +1,20 @@
 # playbooks
+
+Ansible cherche automatiquement des fichiers selon cette convention :
+
+group_vars/
+├── all.yml            ← s’applique à tous les hôtes
+├── groupname1.yml     ← s’applique au groupe nommé groupname1
+├── groupname2/        ← sous-dossier pour un groupe, possible aussi
+│   └── var1.yml
+
+Fichier	Signification:
+group_vars/all.yml	        Chargé pour tous les hôtes (all)
+group_vars/webservers.yml	Chargé seulement si tu as un groupe webservers
+group_vars/localhost.yml	Chargé si tu as un groupe nommé localhost
+host_vars/myhost.yml	        Chargé uniquement pour l’hôte myhost
+
+
 ##################################################################################################
 list-vm-esx.yml
 ## Role Variables
