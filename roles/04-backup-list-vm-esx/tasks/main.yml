@@ -54,3 +54,59 @@
   ansible.builtin.debug:
     var: target_vms
 
+
+
+
+
+# === Sauvegarde des VMs sélectionnées au format OVF vers le NAS Synology ===
+
+- name: Générer un dossier horodaté pour le backup
+  ansible.builtin.set_fact:
+    backup_folder: "backup_{{ ansible_date_time.date }}_{{ ansible_date_time.time | regex_replace(':', '') }}"
+
+- name: Monter le point NFS local vers le Synology si nécessaire
+  ansible.builtin.mount:
+    path: /mnt/nfs-backup
+    src: "{{ nfs_backup_server }}:{{ nfs_backup_path }}"
+    fstype: nfs
+    opts: rw
+    state: mounted
+
+- name: Créer le répertoire de destination sur le NAS pour chaque VM
+  ansible.builtin.file:
+    path: "/mnt/nfs-backup/{{ backup_folder }}/{{ item.guest_name }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ target_vms }}"
+  loop_control:
+    label: "{{ item.guest_name }}"
+
+- name: Exporter les VMs vers le NAS (format OVF)
+  community.vmware.vmware_export_ovf:
+    hostname: >-
+      {{
+        esx1_hostname if item.guest_name in groups['site-192-168-0-10']
+        else esx2_hostname
+      }}
+    username: >-
+      {{
+        esx1_username if item.guest_name in groups['site-192-168-0-10']
+        else esx2_username
+      }}
+    password: >-
+      {{
+        esx1_password if item.guest_name in groups['site-192-168-0-10']
+        else esx2_password
+      }}
+    validate_certs: false
+    name: "{{ item.guest_name }}"
+    export_dir: "/mnt/nfs-backup/{{ backup_folder }}/{{ item.guest_name }}"
+    ovf: true
+  loop: "{{ target_vms }}"
+  loop_control:
+    label: "{{ item.guest_name }}"
+
+- name: Afficher le répertoire final de sauvegarde
+  ansible.builtin.debug:
+    msg: "Sauvegardes OVF enregistrées dans : /mnt/nfs-backup/{{ backup_folder }}/"
+
