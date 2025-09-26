@@ -56,19 +56,11 @@
 
 - name: Démarrer les VMs sur le bon ESX
   community.vmware.vmware_guest_powerstate:
-    hostname: "{{ item.hostname }}"
-    username: "{{ item.username }}"
-    password: "{{ item.password }}"
-    validate_certs: "{{ item.validate_certs }}"
-    name: "{{ item.vm.guest_name }}"
+    hostname: "{{ item.esxi_hostname | regex_replace('\\.family\\.local$', '') | lower == 'esx01' | ternary(esx1_hostname, esx2_hostname) }}"
+    username: "{{ item.esxi_hostname | regex_replace('\\.family\\.local$', '') | lower == 'esx01' | ternary(esx1_username, esx2_username) }}"
+    password: "{{ item.esxi_hostname | regex_replace('\\.family\\.local$', '') | lower == 'esx01' | ternary(esx1_password, esx2_password) }}"
+    validate_certs: "{{ item.esxi_hostname | regex_replace('\\.family\\.local$', '') | lower == 'esx01' | ternary(esx1_validate_certs | default(false), esx2_validate_certs | default(false)) }}"
+    name: "{{ item.guest_name }}"
     state: powered-on
-  loop: >-
-    {{
-      target_vms | map('combine', {
-        'hostname': (item in vms_esx1.virtual_machines) | ternary(esx1_hostname, esx2_hostname),
-        'username': (item in vms_esx1.virtual_machines) | ternary(esx1_username, esx2_username),
-        'password': (item in vms_esx1.virtual_machines) | ternary(esx1_password, esx2_password),
-        'validate_certs': (item in vms_esx1.virtual_machines) | ternary(esx1_validate_certs, esx2_validate_certs),
-        'vm': item
-      })
-    }}
+  loop: "{{ target_vms }}"
+  register: poweron_result
