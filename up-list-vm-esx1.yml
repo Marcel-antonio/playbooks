@@ -1,0 +1,6 @@
+---
+- name: Démarrer une liste de vm sur ESX01
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: up-list-vm-esx1
