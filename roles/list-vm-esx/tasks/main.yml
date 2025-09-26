@@ -36,7 +36,8 @@
 - name: ESX01 Afficher les VMs (nom, power_state, guest_fullname, ip)
   ansible.builtin.debug:
     msg: >-
-      {{ item.guest_name }} | {{ item.power_state }} | {{ item.guest_fullname | default('n/a') }} | {{ item.ip_address | default('n/a') }}
+#      {{ item.guest_name }} | {{ item.power_state }} | {{ item.guest_fullname | default('n/a') }} | {{ item.ip_address | default('n/a') }}
+      {{ item.guest_name }} | {{ item.ip_address }}
   loop: "{{ vm_info.virtual_machines | default([]) }}"
 
 - name: ESX02 Récupérer la liste des VMs (connexion API ESXi/vCenter)
