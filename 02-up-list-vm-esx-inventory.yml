@@ -33,7 +33,7 @@ all:
             #"00 srv-dc01":
             #"02 srv-fic01":
             #"03 srv-frt01":
-            #"04 srv-ctx01":
+            "04 srv-ctx01":
             #"lx-0001 manager":
             #"lx-0001-backup":
             #"lx-0002 worker":
