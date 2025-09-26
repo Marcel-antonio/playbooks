@@ -1,26 +1,32 @@
-=== Dossier : /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/ ===
----- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/defaults/main.yml ----
+=== Dossier : /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx/ ===
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx/defaults/main.yml ----
 #SPDX-License-Identifier: MIT-0
 ---
-# defaults file for list-vm-esx01
+# defaults file for list-vm-esx
 # defaults/main.yml
 # variables avec la plus faible priorité
 
 
-esxi_hostname: "CHANGEMOI"
-esxi_username: "CHANGEMOI"
-esxi_password: "CHANGEMOI"
-esxi_validate_certs: false
+esx1_hostname: "CHANGEMOI"
+esx1_username: "CHANGEMOI"
+esx1_password: "CHANGEMOI"
+esx1_validate_certs: false
 
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/handlers/main.yml ----
+esx2_hostname: "CHANGEMOI"
+esx2_username: "CHANGEMOI"
+esx2_password: "CHANGEMOI"
+esx2_validate_certs: false
+
+
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx/handlers/main.yml ----
 #SPDX-License-Identifier: MIT-0
 ---
 # handlers file for list-vm-esx01
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/meta/main.yml ----
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx/meta/main.yml ----
 #SPDX-License-Identifier: MIT-0
 galaxy_info:
   author: your name
@@ -58,7 +64,7 @@ dependencies: []
   # if you add dependencies to this list.
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/README.md ----
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx/README.md ----
 Role Name
 =========
 
@@ -99,43 +105,77 @@ Author Information
 An optional section for the role authors to include contact information, or a website (HTML is not allowed).
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/tasks/main.yml ----
-# tasks file for list-vm-esx01
-- debug:
-    msg: "User={{ esxi_username }} Pass={{ esxi_password | regex_replace('.','*') }}"
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx/tasks/main.yml ----
+# tasks file for list-vm-esx
 
-- name: Vérifier que les variables sensibles sont définies
+- name: ESX01 debug
+  ansible.builtin.debug:
+    msg: "ESX01 User={{ esx1_username }} Pass={{ esx1_password | regex_replace('.','*') }}"
+
+- name: ESX02 debug
+  ansible.builtin.debug:
+    msg: "ESX02 User={{ esx2_username }} Pass={{ esx2_password | regex_replace('.','*') }}"
+
+- name: ESX01 Vérifier que les variables sensibles sont définies
   ansible.builtin.assert:
     that:
-      - esxi_hostname != 'CHANGEMOI'
-      - esxi_username != 'CHANGEMOI'
-      - esxi_password != 'CHANGEMOI'
-    fail_msg: "esxi_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
+      - esx1_hostname != 'CHANGEMOI'
+      - esx1_username != 'CHANGEMOI'
+      - esx1_password != 'CHANGEMOI'
+    fail_msg: "esx1_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
 
-- name: Récupérer la liste des VMs (connexion API ESXi/vCenter)
+- name: ESX02 Vérifier que les variables sensibles sont définies
+  ansible.builtin.assert:
+    that:
+      - esx2_hostname != 'CHANGEMOI'
+      - esx2_username != 'CHANGEMOI'
+      - esx2_password != 'CHANGEMOI'
+    fail_msg: "esx2_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
+
+- name: ESX01 Récupérer la liste des VMs (connexion API ESXi/vCenter)
   community.vmware.vmware_vm_info:
-    hostname: "{{ esxi_hostname }}"
-    username: "{{ esxi_username }}"
-    password: "{{ esxi_password }}"
-    validate_certs: "{{ esxi_validate_certs | default(false) }}"
+    hostname: "{{ esx1_hostname }}"
+    username: "{{ esx1_username }}"
+    password: "{{ esx1_password }}"
+    validate_certs: "{{ esx1_validate_certs | default(false) }}"
   no_log: true
   register: vm_info
 
-- name: Afficher les VMs (nom, power_state, guest_fullname, ip)
+- name: ESX01 Afficher les VMs
   ansible.builtin.debug:
-    msg: >-
-      {{ item.guest_name }} | {{ item.power_state }} | {{ item.guest_fullname | default('n/a') }} | {{ item.ip_address | default('n/a') }}
+    msg: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
   loop: "{{ vm_info.virtual_machines | default([]) }}"
+  loop_control:
+    label: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
+
+- name: ESX02 Récupérer la liste des VMs (connexion API ESXi/vCenter)
+  community.vmware.vmware_vm_info:
+    hostname: "{{ esx2_hostname }}"
+    username: "{{ esx2_username }}"
+    password: "{{ esx2_password }}"
+    validate_certs: "{{ esx2_validate_certs | default(false) }}"
+  no_log: true
+  register: vm_info
+
+- name: ESX02 Afficher les VMs
+  ansible.builtin.debug:
+    msg: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
+  loop: "{{ vm_info.virtual_machines | default([]) }}"
+  loop_control:
+    label: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
+
+
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx/templates/main.yml ----
 
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/tests/inventory ----
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx/tests/inventory ----
 #SPDX-License-Identifier: MIT-0
 localhost
 
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/tests/test.yml ----
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx/tests/test.yml ----
 #SPDX-License-Identifier: MIT-0
 ---
 - hosts: localhost
@@ -144,7 +184,7 @@ localhost
     - list-vm-esx01
 
 
----- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx01/vars/main.yml ----
+---- /srv/nfs/docker-data/semaphore/playbooks/roles/list-vm-esx/vars/main.yml ----
 #SPDX-License-Identifier: MIT-0
 ---
 
@@ -179,17 +219,17 @@ localhost
 
 
 
-=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/list-vm-esx01.yml ===
----- /srv/nfs/docker-data/semaphore/playbooks/list-vm-esx01.yml ----
+=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/list-vm-esx.yml ===
+---- /srv/nfs/docker-data/semaphore/playbooks/list-vm-esx.yml ----
 ---
-- name: Visualiser les VMs d'ESX01
+- name: Visualiser les VMs d'ESX01 et ESX02
   hosts: localhost
   gather_facts: false
   roles:
-    - role: list-vm-esx01
+    - role: list-vm-esx
 
-=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/list-vm-esx01-inventory.yml ===
----- /srv/nfs/docker-data/semaphore/playbooks/list-vm-esx01-inventory.yml ----
+=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/list-vm-esx-inventory.yml ===
+---- /srv/nfs/docker-data/semaphore/playbooks/list-vm-esx-inventory.yml ----
 all:
   hosts:
     localhost:
@@ -204,4 +244,30 @@ collections:
     version: ">=5.0.0,<6.0.0"
 
 #version: ">=3.6.0"
+
+=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/ansible.cfg ===
+---- /srv/nfs/docker-data/semaphore/playbooks/ansible.cfg ----
+[defaults]
+host_key_checking = False
+interpreter_python = auto_silent
+timeout = 30
+forks = 20
+
+stdout_callback = yaml
+retry_files_enabled = False
+deprecation_warnings = False
+
+bin_ansible_callbacks = True
+
+
+=== Fichier spécifique : /srv/nfs/docker-data/semaphore/playbooks/group_vars/all.yml ===
+---- /srv/nfs/docker-data/semaphore/playbooks/group_vars/all.yml ----
+esx1_hostname: 192.168.0.10
+esx2_hostname: 192.168.0.11
+
+esx1_username: "{{ lookup('env', 'ESX1_USER') }}"
+esx1_password: "{{ lookup('env', 'ESX1_PASS') }}"
+esx2_username: "{{ lookup('env', 'ESX2_USER') }}"
+esx2_password: "{{ lookup('env', 'ESX2_PASS') }}"
+
 
