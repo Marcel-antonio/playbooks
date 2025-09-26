@@ -3,4 +3,4 @@
 - hosts: localhost
   remote_user: root
   roles:
-    - up-list-vm-esx1
+    - up-list-vm-esx

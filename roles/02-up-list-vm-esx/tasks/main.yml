@@ -1,0 +1,57 @@
+# tasks file for 02-up-list-vm-esx (multi-ESX dynamique)
+
+- name: Debug utilisateurs ESX01/ESX02
+  ansible.builtin.debug:
+    msg: |
+      ESX01 User={{ esx1_username }} Pass={{ esx1_password | regex_replace('.','*') }}
+      ESX02 User={{ esx2_username }} Pass={{ esx2_password | regex_replace('.','*') }}
+
+- name: Vérifier que les variables sensibles ESX01 sont définies
+  ansible.builtin.assert:
+    that:
+      - esx1_hostname != 'CHANGEMOI'
+      - esx1_username != 'CHANGEMOI'
+      - esx1_password != 'CHANGEMOI'
+    fail_msg: "esx1_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
+
+- name: Vérifier que les variables sensibles ESX02 sont définies
+  ansible.builtin.assert:
+    that:
+      - esx2_hostname != 'CHANGEMOI'
+      - esx2_username != 'CHANGEMOI'
+      - esx2_password != 'CHANGEMOI'
+    fail_msg: "esx2_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
+
+# Création des listes de VMs par site
+- name: Générer la liste des VMs pour ESX01
+  ansible.builtin.set_fact:
+    esx1_vms: "{{ groups['site-192-168-0-10'] | default([]) }}"
+
+- name: Générer la liste des VMs pour ESX02
+  ansible.builtin.set_fact:
+    esx2_vms: "{{ groups['site-192-168-0-11'] | default([]) }}"
+
+- name: Fusionner les deux listes de VMs
+  ansible.builtin.set_fact:
+    target_vms: "{{ esx1_vms + esx2_vms }}"
+
+- name: Afficher les VMs à démarrer
+  ansible.builtin.debug:
+    var: target_vms
+
+# Démarrage conditionnel selon l’ESXi d’appartenance
+- name: Démarrer les VMs sur le bon ESXi
+  community.vmware.vmware_guest_powerstate:
+    hostname: >-
+      {{ item in esx1_vms | ternary(esx1_hostname, esx2_hostname) }}
+    username: >-
+      {{ item in esx1_vms | ternary(esx1_username, esx2_username) }}
+    password: >-
+      {{ item in esx1_vms | ternary(esx1_password, esx2_password) }}
+    validate_certs: >-
+      {{ item in esx1_vms
+         | ternary(esx1_validate_certs | default(false), esx2_validate_certs | default(false)) }}
+    name: "{{ item }}"
+    state: powered-on
+  loop: "{{ target_vms }}"
+  register: poweron_result

@@ -1,6 +1,6 @@
 #SPDX-License-Identifier: MIT-0
 ---
-# defaults file for up-list-vm-esx1
+# defaults file for up-list-vm-esx
 # defaults/main.yml
 # variables avec la plus faible priorité
 
