@@ -30,7 +30,7 @@
     username: "{{ esx1_username }}"
     password: "{{ esx1_password }}"
     validate_certs: "{{ esx1_validate_certs | default(false) }}"
-  no_log: true
+  #no_log: true
   register: vm_info
 
 - name: ESX01 Afficher les VMs
@@ -46,7 +46,7 @@
     username: "{{ esx2_username }}"
     password: "{{ esx2_password }}"
     validate_certs: "{{ esx2_validate_certs | default(false) }}"
-  no_log: true
+  #no_log: true
   register: vm_info
 
 - name: ESX02 Afficher les VMs
