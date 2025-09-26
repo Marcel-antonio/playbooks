@@ -54,13 +54,19 @@
   ansible.builtin.debug:
     var: target_vms
 
-- name: Démarrer les VMs sur le bon ESX
+- name: Démarrer les VMs sur l'hôte ESX approprié
   community.vmware.vmware_guest_powerstate:
-    hostname: "{{ item.esxi_hostname | regex_replace('\\.family\\.local$', '') | lower == 'esx01' | ternary(esx1_hostname, esx2_hostname) }}"
-    username: "{{ item.esxi_hostname | regex_replace('\\.family\\.local$', '') | lower == 'esx01' | ternary(esx1_username, esx2_username) }}"
-    password: "{{ item.esxi_hostname | regex_replace('\\.family\\.local$', '') | lower == 'esx01' | ternary(esx1_password, esx2_password) }}"
-    validate_certs: "{{ item.esxi_hostname | regex_replace('\\.family\\.local$', '') | lower == 'esx01' | ternary(esx1_validate_certs | default(false), esx2_validate_certs | default(false)) }}"
+    hostname: >-
+      {{ item.esxi_hostname | regex_replace('\.family\.local$', '') | lower == 'esx01'
+         | ternary(esx1_hostname, esx2_hostname) }}
+    username: >-
+      {{ item.esxi_hostname | regex_replace('\.family\.local$', '') | lower == 'esx01'
+         | ternary(esx1_username, esx2_username) }}
+    password: >-
+      {{ item.esxi_hostname | regex_replace('\.family\.local$', '') | lower == 'esx01'
+         | ternary(esx1_password, esx2_password) }}
+    validate_certs: false
     name: "{{ item.guest_name }}"
     state: powered-on
   loop: "{{ target_vms }}"
-  register: poweron_result
+  register: result_power_on
