@@ -54,20 +54,19 @@
   ansible.builtin.debug:
     var: target_vms
 
-# Après "Afficher les VMs ciblées"
+- name: Rien à faire si la liste est vide
+  ansible.builtin.debug:
+    msg: "Aucune VM de l'inventaire à démarrer."
+  when: (target_vms | length) == 0
 
 - name: Séparer les VMs par hôte ESX
   ansible.builtin.set_fact:
     target_vms_esx1: >-
-      {{ target_vms
-         | selectattr('esxi_hostname', 'search', '^esx01(\\.|$)')
-         | list }}
+      {{ target_vms | selectattr('esxi_hostname', 'search', '^esx01(\\.|$)') | list }}
     target_vms_esx2: >-
-      {{ target_vms
-         | selectattr('esxi_hostname', 'search', '^esx02(\\.|$)')
-         | list }}
+      {{ target_vms | selectattr('esxi_hostname', 'search', '^esx02(\\.|$)') | list }}
 
-- name: Démarrer les VMs sur ESX01
+- name: Démarrer les VMs sur ESX01 (si éteintes)
   community.vmware.vmware_guest_powerstate:
     hostname: "{{ esx1_hostname }}"
     username: "{{ esx1_username }}"
@@ -76,10 +75,14 @@
     name: "{{ item.guest_name }}"
     state: powered-on
   loop: "{{ target_vms_esx1 }}"
-  when: target_vms_esx1 | length > 0
-  register: result_power_on_esx1
+  when:
+    - (target_vms_esx1 | length) > 0
+    - item.power_state != 'poweredOn'
+  loop_control:
+    label: "{{ item.guest_name }}"
+  register: power_on_esx1
 
-- name: Démarrer les VMs sur ESX02
+- name: Démarrer les VMs sur ESX02 (si éteintes)
   community.vmware.vmware_guest_powerstate:
     hostname: "{{ esx2_hostname }}"
     username: "{{ esx2_username }}"
@@ -88,5 +91,19 @@
     name: "{{ item.guest_name }}"
     state: powered-on
   loop: "{{ target_vms_esx2 }}"
-  when: target_vms_esx2 | length > 0
-  register: result_power_on_esx2
+  when:
+    - (target_vms_esx2 | length) > 0
+    - item.power_state != 'poweredOn'
+  loop_control:
+    label: "{{ item.guest_name }}"
+  register: power_on_esx2
+
+- name: Résumé démarrage ESX01
+  ansible.builtin.debug:
+    var: power_on_esx1.results
+  when: power_on_esx1 is defined
+
+- name: Résumé démarrage ESX02
+  ansible.builtin.debug:
+    var: power_on_esx2.results
+  when: power_on_esx2 is defined
