@@ -49,9 +49,9 @@
   no_log: true
   register: vm_info
 
-- name: ESX02 Afficher les VMs (nom, power_state, guest_fullname, ip)
+- name: Afficher les VMs (shortname | ip)
   ansible.builtin.debug:
-    msg: >-
-      {{ item.guest_name }} | {{ item.power_state }} | {{ item.guest_fullname | default('n/a') }} | {{ item.ip_address | default('n/a') }}
+    msg: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
   loop: "{{ vm_info.virtual_machines | default([]) }}"
-
+  loop_control:
+    label: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
