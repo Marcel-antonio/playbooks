@@ -138,7 +138,7 @@ An optional section for the role authors to include contact information, or a we
     username: "{{ esx1_username }}"
     password: "{{ esx1_password }}"
     validate_certs: "{{ esx1_validate_certs | default(false) }}"
-  no_log: true
+  #no_log: true
   register: vm_info
 
 - name: ESX01 Afficher les VMs
@@ -154,7 +154,7 @@ An optional section for the role authors to include contact information, or a we
     username: "{{ esx2_username }}"
     password: "{{ esx2_password }}"
     validate_certs: "{{ esx2_validate_certs | default(false) }}"
-  no_log: true
+  #no_log: true
   register: vm_info
 
 - name: ESX02 Afficher les VMs
@@ -267,6 +267,7 @@ esx2_hostname: 192.168.0.11
 
 esx1_username: "{{ lookup('env', 'ESX1_USER') }}"
 esx1_password: "{{ lookup('env', 'ESX1_PASS') }}"
+
 esx2_username: "{{ lookup('env', 'ESX2_USER') }}"
 esx2_password: "{{ lookup('env', 'ESX2_PASS') }}"
 

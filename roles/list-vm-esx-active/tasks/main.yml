@@ -1,0 +1,57 @@
+# tasks file for list-vm-esx-active
+
+- name: ESX01 debug
+  ansible.builtin.debug:
+    msg: "ESX01 User={{ esx1_username }} Pass={{ esx1_password | regex_replace('.','*') }}"
+
+- name: ESX02 debug
+  ansible.builtin.debug:
+    msg: "ESX02 User={{ esx2_username }} Pass={{ esx2_password | regex_replace('.','*') }}"
+
+- name: ESX01 Vérifier que les variables sensibles sont définies
+  ansible.builtin.assert:
+    that:
+      - esx1_hostname != 'CHANGEMOI'
+      - esx1_username != 'CHANGEMOI'
+      - esx1_password != 'CHANGEMOI'
+    fail_msg: "esx1_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
+
+- name: ESX02 Vérifier que les variables sensibles sont définies
+  ansible.builtin.assert:
+    that:
+      - esx2_hostname != 'CHANGEMOI'
+      - esx2_username != 'CHANGEMOI'
+      - esx2_password != 'CHANGEMOI'
+    fail_msg: "esx2_* non définies (CHANGEMOI). Corrige le Variable Group/Secrets."
+
+- name: ESX01 Récupérer la liste des VMs (connexion API ESXi/vCenter)
+  community.vmware.vmware_vm_info:
+    hostname: "{{ esx1_hostname }}"
+    username: "{{ esx1_username }}"
+    password: "{{ esx1_password }}"
+    validate_certs: "{{ esx1_validate_certs | default(false) }}"
+  #no_log: true
+  register: vm_info
+
+- name: ESX01 Afficher les VMs (uniquement actives)
+  ansible.builtin.debug:
+    msg: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
+  loop: "{{ vm_info.virtual_machines | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
+  loop_control:
+    label: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
+
+- name: ESX02 Récupérer la liste des VMs (connexion API ESXi/vCenter)
+  community.vmware.vmware_vm_info:
+    hostname: "{{ esx2_hostname }}"
+    username: "{{ esx2_username }}"
+    password: "{{ esx2_password }}"
+    validate_certs: "{{ esx2_validate_certs | default(false) }}"
+  #no_log: true
+  register: vm_info
+
+- name: ESX02 Afficher les VMs (uniquement actives)
+  ansible.builtin.debug:
+    msg: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"
+  loop: "{{ vm_info.virtual_machines | selectattr('power_state', 'equalto', 'poweredOn') | list }}"
+  loop_control:
+    label: "{{ (item.guest_name | default('n/a') | split('.') | first) }} | {{ item.ip_address | default('n/a', true) }}"

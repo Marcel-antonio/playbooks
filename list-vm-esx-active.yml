@@ -1,0 +1,6 @@
+---
+- name: Visualiser les VMs actives d'ESX01 et ESX02
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: list-vm-esx-active
