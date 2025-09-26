@@ -1,10 +1,10 @@
-# tasks file for 02-up-list-vm-esx
+# tasks file for 02-down-list-vm-esx (STOP)
 
 - name: Déboguer les identifiants ESX
   ansible.builtin.debug:
     msg: |
-      ESX1 = {{ esx1_hostname }} / {{ esx1_username }} / {{ '*' * esx1_password | length }}
-      ESX2 = {{ esx2_hostname }} / {{ esx2_username }} / {{ '*' * esx2_password | length }}
+      ESX1 = {{ esx1_hostname }} / {{ esx1_username }} / {{ '*' * (esx1_password | length) }}
+      ESX2 = {{ esx2_hostname }} / {{ esx2_username }} / {{ '*' * (esx2_password | length) }}
 
 - name: Vérifier que les variables sensibles sont définies pour ESX1
   ansible.builtin.assert:
@@ -40,9 +40,9 @@
 
 - name: Fusionner les deux listes de VMs
   ansible.builtin.set_fact:
-    all_vms: "{{ vms_esx1.virtual_machines + vms_esx2.virtual_machines }}"
+    all_vms: "{{ (vms_esx1.virtual_machines | default([])) + (vms_esx2.virtual_machines | default([])) }}"
 
-- name: Extraire les VMs à démarrer depuis l'inventaire
+- name: Extraire les VMs à ARRÊTER depuis l'inventaire
   ansible.builtin.set_fact:
     target_vms: >-
       {{ all_vms
@@ -56,56 +56,96 @@
 
 - name: Rien à faire si la liste est vide
   ansible.builtin.debug:
-    msg: "Aucune VM de l'inventaire à démarrer."
+    msg: "Aucune VM de l'inventaire à arrêter."
   when: (target_vms | length) == 0
 
-# Séparer les VMs ciblées par hôte ESXi (on cherche esx01 / esx02 dans le FQDN)
-- name: Calculer les listes par hôte ESXi
+# Séparer par hôte + ne garder que celles allumées
+- name: Calculer les listes par hôte ESXi (on garde uniquement poweredOn)
   ansible.builtin.set_fact:
-    targets_esx1: "{{ target_vms | selectattr('esxi_hostname', 'search', '(?i)\\besx01\\b') | list }}"
-    targets_esx2: "{{ target_vms | selectattr('esxi_hostname', 'search', '(?i)\\besx02\\b') | list }}"
+    targets_esx1_on: >-
+      {{ target_vms
+         | selectattr('esxi_hostname', 'search', '(?i)\\besx01\\b')
+         | selectattr('power_state', 'equalto', 'poweredOn')
+         | list }}
+    targets_esx2_on: >-
+      {{ target_vms
+         | selectattr('esxi_hostname', 'search', '(?i)\\besx02\\b')
+         | selectattr('power_state', 'equalto', 'poweredOn')
+         | list }}
 
 - name: Debug tailles des listes
   ansible.builtin.debug:
     msg: |
-      ESX1 -> {{ targets_esx1 | length }} VMs
-      ESX2 -> {{ targets_esx2 | length }} VMs
+      ESX1 (à arrêter) -> {{ targets_esx1_on | length }} VMs
+      ESX2 (à arrêter) -> {{ targets_esx2_on | length }} VMs
 
-# Démarrage côté ESX01 (par UUID)
-- name: Démarrer les VMs sur ESX01
+# Tentative d'arrêt propre via VMware Tools
+- name: Shutdown-guest sur ESX01 (gracieux)
   community.vmware.vmware_guest_powerstate:
     hostname: "{{ esx1_hostname }}"
     username: "{{ esx1_username }}"
     password: "{{ esx1_password }}"
     validate_certs: "{{ esx1_validate_certs | default(false) }}"
     uuid: "{{ item.uuid }}"
-    state: powered-on
-  loop: "{{ targets_esx1 }}"
-  when: targets_esx1 | length > 0
-  register: power_on_esx1
+    state: shutdown-guest
+    state_change_timeout: 120
+  loop: "{{ targets_esx1_on }}"
+  when: targets_esx1_on | length > 0
+  register: shutdown_esx1
 
-# Démarrage côté ESX02 (par UUID)
-- name: Démarrer les VMs sur ESX02
+- name: Shutdown-guest sur ESX02 (gracieux)
   community.vmware.vmware_guest_powerstate:
     hostname: "{{ esx2_hostname }}"
     username: "{{ esx2_username }}"
     password: "{{ esx2_password }}"
     validate_certs: "{{ esx2_validate_certs | default(false) }}"
     uuid: "{{ item.uuid }}"
-    state: powered-on
-  loop: "{{ targets_esx2 }}"
-  when: targets_esx2 | length > 0
-  register: power_on_esx2
+    state: shutdown-guest
+    state_change_timeout: 120
+  loop: "{{ targets_esx2_on }}"
+  when: targets_esx2_on | length > 0
+  register: shutdown_esx2
+
+# Forcer l'arrêt si toujours allumée (au cas où VMware Tools absent / timeout)
+- name: Power-off forcé ESX01 (fallback)
+  community.vmware.vmware_guest_powerstate:
+    hostname: "{{ esx1_hostname }}"
+    username: "{{ esx1_username }}"
+    password: "{{ esx1_password }}"
+    validate_certs: "{{ esx1_validate_certs | default(false) }}"
+    uuid: "{{ item.uuid }}"
+    state: powered-off
+    force: true
+    state_change_timeout: 60
+  loop: "{{ targets_esx1_on }}"
+  when: targets_esx1_on | length > 0
+  register: poweroff_esx1
+
+- name: Power-off forcé ESX02 (fallback)
+  community.vmware.vmware_guest_powerstate:
+    hostname: "{{ esx2_hostname }}"
+    username: "{{ esx2_username }}"
+    password: "{{ esx2_password }}"
+    validate_certs: "{{ esx2_validate_certs | default(false) }}"
+    uuid: "{{ item.uuid }}"
+    state: powered-off
+    force: true
+    state_change_timeout: 60
+  loop: "{{ targets_esx2_on }}"
+  when: targets_esx2_on | length > 0
+  register: poweroff_esx2
 
 # Résumés lisibles
-- name: Résumé démarrage ESX01
+- name: Résumé arrêt ESX01
   ansible.builtin.debug:
     msg:
-      powered_on: "{{ (power_on_esx1.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
-      skipped:    "{{ (power_on_esx1.results | default([])) | rejectattr('changed') | map(attribute='item.guest_name') | list }}"
+      attempted: "{{ (targets_esx1_on | map(attribute='guest_name') | list) | default([]) }}"
+      shutdown_guest_changed: "{{ (shutdown_esx1.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
+      poweroff_changed: "{{ (poweroff_esx1.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
 
-- name: Résumé démarrage ESX02
+- name: Résumé arrêt ESX02
   ansible.builtin.debug:
     msg:
-      powered_on: "{{ (power_on_esx2.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
-      skipped:    "{{ (power_on_esx2.results | default([])) | rejectattr('changed') | map(attribute='item.guest_name') | list }}"
+      attempted: "{{ (targets_esx2_on | map(attribute='guest_name') | list) | default([]) }}"
+      shutdown_guest_changed: "{{ (shutdown_esx2.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
+      poweroff_changed: "{{ (poweroff_esx2.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"

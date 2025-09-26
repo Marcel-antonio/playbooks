@@ -1,0 +1,111 @@
+# tasks file for 02-down-list-vm-esx
+
+- name: Déboguer les identifiants ESX
+  ansible.builtin.debug:
+    msg: |
+      ESX1 = {{ esx1_hostname }} / {{ esx1_username }} / {{ '*' * esx1_password | length }}
+      ESX2 = {{ esx2_hostname }} / {{ esx2_username }} / {{ '*' * esx2_password | length }}
+
+- name: Vérifier que les variables sensibles sont définies pour ESX1
+  ansible.builtin.assert:
+    that:
+      - esx1_hostname != 'CHANGEMOI'
+      - esx1_username != 'CHANGEMOI'
+      - esx1_password != 'CHANGEMOI'
+    fail_msg: "Variables ESX1 non définies correctement."
+
+- name: Vérifier que les variables sensibles sont définies pour ESX2
+  ansible.builtin.assert:
+    that:
+      - esx2_hostname != 'CHANGEMOI'
+      - esx2_username != 'CHANGEMOI'
+      - esx2_password != 'CHANGEMOI'
+    fail_msg: "Variables ESX2 non définies correctement."
+
+- name: Récupérer les VMs sur ESX1
+  community.vmware.vmware_vm_info:
+    hostname: "{{ esx1_hostname }}"
+    username: "{{ esx1_username }}"
+    password: "{{ esx1_password }}"
+    validate_certs: "{{ esx1_validate_certs | default(false) }}"
+  register: vms_esx1
+
+- name: Récupérer les VMs sur ESX2
+  community.vmware.vmware_vm_info:
+    hostname: "{{ esx2_hostname }}"
+    username: "{{ esx2_username }}"
+    password: "{{ esx2_password }}"
+    validate_certs: "{{ esx2_validate_certs | default(false) }}"
+  register: vms_esx2
+
+- name: Fusionner les deux listes de VMs
+  ansible.builtin.set_fact:
+    all_vms: "{{ vms_esx1.virtual_machines + vms_esx2.virtual_machines }}"
+
+- name: Extraire les VMs à démarrer depuis l'inventaire
+  ansible.builtin.set_fact:
+    target_vms: >-
+      {{ all_vms
+         | selectattr('guest_name', 'defined')
+         | selectattr('guest_name', 'in', groups['all'])
+         | list }}
+
+- name: Afficher les VMs ciblées
+  ansible.builtin.debug:
+    var: target_vms
+
+- name: Rien à faire si la liste est vide
+  ansible.builtin.debug:
+    msg: "Aucune VM de l'inventaire à démarrer."
+  when: (target_vms | length) == 0
+
+# Séparer les VMs ciblées par hôte ESXi (on cherche esx01 / esx02 dans le FQDN)
+- name: Calculer les listes par hôte ESXi
+  ansible.builtin.set_fact:
+    targets_esx1: "{{ target_vms | selectattr('esxi_hostname', 'search', '(?i)\\besx01\\b') | list }}"
+    targets_esx2: "{{ target_vms | selectattr('esxi_hostname', 'search', '(?i)\\besx02\\b') | list }}"
+
+- name: Debug tailles des listes
+  ansible.builtin.debug:
+    msg: |
+      ESX1 -> {{ targets_esx1 | length }} VMs
+      ESX2 -> {{ targets_esx2 | length }} VMs
+
+# Démarrage côté ESX01 (par UUID)
+- name: Démarrer les VMs sur ESX01
+  community.vmware.vmware_guest_powerstate:
+    hostname: "{{ esx1_hostname }}"
+    username: "{{ esx1_username }}"
+    password: "{{ esx1_password }}"
+    validate_certs: "{{ esx1_validate_certs | default(false) }}"
+    uuid: "{{ item.uuid }}"
+    state: powered-on
+  loop: "{{ targets_esx1 }}"
+  when: targets_esx1 | length > 0
+  register: power_on_esx1
+
+# Démarrage côté ESX02 (par UUID)
+- name: Démarrer les VMs sur ESX02
+  community.vmware.vmware_guest_powerstate:
+    hostname: "{{ esx2_hostname }}"
+    username: "{{ esx2_username }}"
+    password: "{{ esx2_password }}"
+    validate_certs: "{{ esx2_validate_certs | default(false) }}"
+    uuid: "{{ item.uuid }}"
+    state: powered-on
+  loop: "{{ targets_esx2 }}"
+  when: targets_esx2 | length > 0
+  register: power_on_esx2
+
+# Résumés lisibles
+- name: Résumé démarrage ESX01
+  ansible.builtin.debug:
+    msg:
+      powered_on: "{{ (power_on_esx1.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
+      skipped:    "{{ (power_on_esx1.results | default([])) | rejectattr('changed') | map(attribute='item.guest_name') | list }}"
+
+- name: Résumé démarrage ESX02
+  ansible.builtin.debug:
+    msg:
+      powered_on: "{{ (power_on_esx2.results | default([])) | selectattr('changed') | map(attribute='item.guest_name') | list }}"
+      skipped:    "{{ (power_on_esx2.results | default([])) | rejectattr('changed') | map(attribute='item.guest_name') | list }}"
