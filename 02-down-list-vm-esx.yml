@@ -1,6 +1,6 @@
 ---
-- name: Démarrer une liste de vm sur ESX01 ou ESX02
+- name: Eteindre une liste de vm sur ESX01 ou ESX02
   hosts: localhost
   gather_facts: false
   roles:
-    - role: 02-up-list-vm-esx
+    - role: 02-down-list-vm-esx
