@@ -3,5 +3,6 @@ esx2_hostname: 192.168.0.11
 
 esx1_username: "{{ lookup('env', 'ESX1_USER') }}"
 esx1_password: "{{ lookup('env', 'ESX1_PASS') }}"
+
 esx2_username: "{{ lookup('env', 'ESX2_USER') }}"
 esx2_password: "{{ lookup('env', 'ESX2_PASS') }}"
