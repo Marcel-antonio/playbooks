@@ -1,6 +1,0 @@
----
-- name: Visualiser les VMs d'ESX02
-  hosts: localhost
-  gather_facts: false
-  roles:
-    - role: list-vm-esx02
